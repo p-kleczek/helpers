@@ -1,0 +1,8 @@
+@Misc{{{label},
+  author       = {{{author}}},
+  publisher    = {{{publisher}}},
+  title        = {{{title}}},
+  year         = {{{pubdate}}},
+  url          = {{{url}}},
+}}
+[(:cite:NAMESPACES:{label})]

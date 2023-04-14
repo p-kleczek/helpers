@@ -1,6 +1,11 @@
 /.idea
 out/
 
+/articles_processor/input
+/articles_processor/output
+/music_library/out
+/photos_processor/out
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

@@ -3,7 +3,9 @@ import re
 # ============================================================================
 
 title_org = """
-Ustawa z dnia 29 grudnia 1992 r. o radiofonii i telewizji
+Karol Wojtyła, Ekke Overbeek, pedofilia i SB
+Więź
+2023-03-06
 """.strip()
 
 
@@ -12,7 +14,7 @@ Ustawa z dnia 29 grudnia 1992 r. o radiofonii i telewizji
 def generate_bibtex_key(raw_key: str) -> str:
     title_new = raw_key.lower()
 
-    title_new = re.sub(r'[ \-]', '_', title_new)
+    title_new = re.sub(r'[ \-\n]', '_', title_new)
 
     replacement_tab = {
         'ą': 'a',

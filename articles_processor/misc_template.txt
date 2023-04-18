@@ -5,4 +5,4 @@
   year         = {{{pubdate}}},
   url          = {{{url}}},
 }}
-[(:cite:NAMESPACES:{label})]
+[(:cite:CITE_NAMESPACE:{label})]

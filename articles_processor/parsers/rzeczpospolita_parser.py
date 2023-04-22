@@ -4,26 +4,19 @@ from abc import ABC
 from datetime import datetime
 from typing import ClassVar, List
 
-from articles_processor.parsers.base_parser import ArticleHTMLParser, TagData
+from articles_processor.parsers.base_parser import ArticleHTMLParser, TagData, get_individual_attr_pattern
 
 
-class PolitykaHTMLParser(ArticleHTMLParser, ABC):
+class RzeczpospolitaHTMLParser(ArticleHTMLParser, ABC):
     @staticmethod
     def is_contnet_tag(tag_data: TagData) -> bool:
-        return ((tag_data.tag == 'div'
-                 and 'class' in tag_data.attrs
-                 and 'cg_article_content' in tag_data.attrs['class'])
-                or (tag_data.tag == 'div'
-                    and 'class' in tag_data.attrs
-                    and 'cg_article_printed_info' in tag_data.attrs['class']))
-
-    @staticmethod
-    def is_article_lead(tag_data: TagData) -> bool:
-        return tag_data.tag == 'div' and tag_data.attrs.get('class', None) == 'cg_article_lead'
+        return (tag_data.tag == 'div'
+                and 'class' in tag_data.attrs
+                and 'articleBody' in tag_data.attrs['class'])
 
     @staticmethod
     def is_text_paragraph(tag_data: TagData) -> bool:
-        return tag_data.tag == 'p'
+        return tag_data.tag in {'p', 'span'}
 
     # @staticmethod
     # @abstractmethod
@@ -79,7 +72,9 @@ class PolitykaHTMLParser(ArticleHTMLParser, ABC):
     def process_endtag(self):
         last_tag = self.tag_hierarchy[-1].td
         if self.is_content():
-            if self.is_text_paragraph(last_tag) or self.is_article_lead(last_tag):
+            if self.is_text_paragraph(last_tag):
+                self.output.content += '\n\n'
+            if self.is_header(last_tag):
                 self.output.content += '\n\n'
             # if self.is_text_paragraph(last_tag) or self.is_question(last_tag):
             #     self.output.content += '\n\n'
@@ -87,12 +82,9 @@ class PolitykaHTMLParser(ArticleHTMLParser, ABC):
             #     self.output.content += '\n'
 
     tags_to_ignore: ClassVar[List[TagData]] = [
-        TagData(tag='div', attrs={'class': 'cg_ad_outer'}),
-        TagData(tag='script', attrs={'id': 'cg_nav_viewsettings_template'}),
-        TagData(tag='script', attrs={'id': 'cg_nav_user_template'}),
-        TagData(tag='script', attrs={'id': 'cg_nav_user_fav_list_template'}),
-        TagData(tag='div', attrs={'class': 'cg_article_side-multimedia'}),
-        TagData(tag='div', attrs={'class': 'cg_article_side-audio_version'}),
+        TagData(tag='div', attrs={'class': 'intext--video'}),
+        TagData(tag='div', attrs={'class': 'subtitle--border'}),
+        TagData(tag='div', attrs={'class': get_individual_attr_pattern('article')}),
     ]
 
     def get_tags_to_ignore(self) -> List[TagData]:
@@ -100,11 +92,8 @@ class PolitykaHTMLParser(ArticleHTMLParser, ABC):
 
     def get_tags_with_suppressed_validation(self) -> List[TagData]:
         return super().get_tags_with_suppressed_validation() + [
-            TagData(tag='div', attrs={'class': 'general-container'}),
-            TagData(tag='div', attrs={'class': 'cg_article_content'}),
-            TagData(tag='div', attrs={'class': 'cg_article_meat'}),
-            TagData(tag='div', attrs={'class': 'cg_article_side-audio-wrapper'}),
-            TagData(tag='div', attrs={'class': 'cg_article_printed_info'}),
+            TagData(tag='div', attrs={'class': 'excerpt'}),
+            TagData(tag='div', attrs={'class': get_individual_attr_pattern('relative')}),
         ]
 
     def process_data(self):
@@ -117,49 +106,47 @@ class PolitykaHTMLParser(ArticleHTMLParser, ABC):
 
         if self.is_content():
             if self.is_contnet_tag(last_tag):
-                if last_tag.data.strip():
-                    data = last_tag.cleaned_data
-                    data = re.sub("\n", " ", data)
-                    data = re.sub(" +", " ", data)
-                    self.output.content += data
                 return
 
-            if self.is_article_lead(last_tag):
-                last_tag.data = last_tag.data.rstrip()
-
-            if any(te.td.tag == 'em' and 'Czytaj też:' in te.td.data for te in self.tag_hierarchy):
+            if self.is_text_paragraph(last_tag):
+                self.output.content += last_tag.cleaned_data.strip()
                 return
 
-            if self.is_text_paragraph(last_tag) or self.is_article_lead(last_tag):
-                self.output.content += last_tag.cleaned_data
-                return
+            data_withouth_nls: str = last_tag.cleaned_data.replace('\n', " ")
 
             # if self.is_block_quote(last_tag):
             #     self.output.content += re.sub(r"^\n\s+", "", data)
             #     return
 
             if self.is_header(last_tag):
-                self.output.content += f"{self.header_marker}{last_tag.cleaned_data.rstrip()}\n\n"
+                # self.output.content += f"{self.header_marker}{last_tag.cleaned_data.rstrip()}\n\n"
+                self.output.content += data_withouth_nls
                 return
 
             if last_tag.tag == 'a':
                 if self.is_link_to_another_article(last_tag):
                     href: str = last_tag.attrs['href']
                     self.output.links.append(re.sub("#.*$", "", href))
-                    self.output.content += f"{last_tag.cleaned_data}[L{len(self.output.links)}]"
+                    self.output.content += f"{data_withouth_nls}[L{len(self.output.links)}]"
                 else:
-                    self.output.content += last_tag.cleaned_data
+                    self.output.content += data_withouth_nls
                 return
 
             self.check_ignored_tag(last_tag, last_tag.data)
 
     def should_stop_processing(self) -> bool:
         last_tag = self.tag_hierarchy[-1].td
-        return (last_tag.tag == 'ul'
+        return (last_tag.tag == 'div'
                 and 'class' in last_tag.attrs
-                and (last_tag.attrs['class'] == 'cg_article_tags'))
+                and (last_tag.attrs['class'] == 'article--footer'))
 
     def postprocess_metadata(self) -> None:
         super().postprocess_metadata()
-        # self.output.author = self.output.metadata['author']['name']
+        # author_element = self.output.metadata['author']
+        # if isinstance(author_element, dict):
+        #     self.output.author = author_element['name']
+        # elif isinstance(author_element, list):
+        #     self.output.author = " and ".join(author['name'] for author in self.output.metadata['author'])
+        # else:
+        #     raise NotImplementedError
         # self.output.title = self.output.metadata['headline']

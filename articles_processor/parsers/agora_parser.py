@@ -4,7 +4,7 @@ from abc import ABC, abstractmethod
 from datetime import datetime
 from typing import ClassVar, List
 
-from articles_processor.parsers.base_parser import ArticleHTMLParser, TagData
+from articles_processor.parsers.base_parser import ArticleHTMLParser, TagData, TagStatus
 
 
 class AgoraHTMLParser(ArticleHTMLParser, ABC):
@@ -90,10 +90,12 @@ class AgoraHTMLParser(ArticleHTMLParser, ABC):
         last_tag = self.tag_hierarchy[-1].td
         if last_tag.tag == "title":
             self.output.title += last_tag.cleaned_data
-        if last_tag.tag == "script" and 'application/ld+json' == last_tag.attrs.get('type', None):
-            self.output.metadata = json.loads(last_tag.data)
 
         if self.is_content():
+            if any(last_tag.data.startswith(s) for s in ['CZTAJ TAKŻE:', 'POLECAMY']):
+                self.tag_hierarchy[-1].status = TagStatus.IGNORED
+                return
+
             if self.is_text_paragraph(last_tag) or self.is_question(last_tag):
                 self.output.content += last_tag.cleaned_data
                 return
@@ -103,11 +105,12 @@ class AgoraHTMLParser(ArticleHTMLParser, ABC):
                 return
 
             if self.is_header(last_tag):
-                is_isolated_header: bool = last_tag.cleaned_data[-1] in ".?!"
-                if is_isolated_header:
-                    self.output.content += self.header_marker
+                # is_isolated_header: bool = last_tag.cleaned_data[-1] in ".?!"
+                # if is_isolated_header:
+                #     self.output.content += self.header_marker
+                self.output.content += self.header_marker
                 self.output.content += last_tag.cleaned_data.rstrip()
-                self.output.content += "\n\n" if is_isolated_header else " "
+                self.output.content += "\n\n"  # if is_isolated_header else " "
                 return
 
             if last_tag.tag == 'a':
@@ -146,14 +149,16 @@ class AgoraHTMLParser(ArticleHTMLParser, ABC):
         super().feed(data)
 
     def postprocess_metadata(self) -> None:
-        self.output.author = ", ".join(author['name'] for author in self.output.metadata['author'])
-        self.output.url = self.output.metadata['mainEntityOfPage']['url']
+        super().postprocess_metadata()
+        # self.output.author = " and ".join(author['name'] for author in self.output.metadata['author'])
+        # self.output.url = self.output.metadata['mainEntityOfPage']['url']
 
     def remove_extra_metadata(self):
-        for author in self.output.metadata['author']:
-            for tag in ['url', 'description']:
-                if tag in author:
-                    author.pop(tag)
+        pass
+        # for author in self.output.metadata['author']:
+        #     for tag in ['url', 'description']:
+        #         if tag in author:
+        #             author.pop(tag)
 
 
 class WysokieObcasyHTMLParser(AgoraHTMLParser):
@@ -240,6 +245,9 @@ class WyborczaHTMLParser(AgoraHTMLParser):
 
     tags_to_ignore_recursively: ClassVar[List[TagData]] = [
         TagData(tag='div', attrs={'class': 'adview'}),
+        TagData(tag='div', attrs={'class': 'text--embed'}),
+        # TagData(tag='div', attrs={'class': 'text--photo'}),
+        TagData(tag='div', attrs={'class': 'container mt+++'}),
     ]
 
     tags_to_ignore_individually: ClassVar[List[TagData]] = [
@@ -251,3 +259,17 @@ class WyborczaHTMLParser(AgoraHTMLParser):
         return (super().get_tags_to_ignore()
                 + WyborczaHTMLParser.tags_to_ignore_recursively
                 + WyborczaHTMLParser.tags_to_ignore_individually)
+
+    def get_tags_with_suppressed_validation(self) -> List[TagData]:
+        return super().get_tags_with_suppressed_validation() + [
+            TagData(tag='div', attrs={'class': 'text--photo'}),
+            TagData(tag='figure', attrs={'class': 'a-image'}),
+            TagData(tag='span', attrs={'class': 'text--photo-title'}),
+            TagData(tag='span', attrs={'class': 'text--photo-author'}),
+        ]
+
+    def should_stop_processing(self) -> bool:
+        last_tag = self.tag_hierarchy[-1].td
+        return (last_tag.tag == 'div'
+                and 'class' in last_tag.attrs
+                and (last_tag.attrs['class'] == 'article--postcontent'))

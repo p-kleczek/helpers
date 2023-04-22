@@ -14,9 +14,12 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
 
     @staticmethod
     def is_contnet_tag(tag_data: TagData) -> bool:
-        return (tag_data.tag == 'div'
-                and 'class' in tag_data.attrs
-                and 'single__post__content' in tag_data.attrs['class'])
+        return ((tag_data.tag == 'div'
+                 and 'class' in tag_data.attrs
+                 and 'single__post__content' in tag_data.attrs['class'])
+                or (tag_data.tag == 'div'
+                    and 'class' in tag_data.attrs
+                    and all(val in tag_data.attrs['class'] for val in {'cell', 'large-11'})))
 
     @staticmethod
     def is_text_paragraph(tag_data: TagData) -> bool:
@@ -71,7 +74,7 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
                 and not self.is_ignored_in_hierarchy()
                 and self.is_content()):
             if self.is_block_quote(last_tag.td):
-                self.output.content += f"[Q] {self.curent_blockquote[1]}: {self.curent_blockquote[0]}\n\n"
+                self.output.content += f"{self.quote_marker} {self.curent_blockquote[1]}: {self.curent_blockquote[0]}\n\n"
                 self.curent_blockquote = []
             elif self.is_text_paragraph(last_tag.td) and not self.is_part_of_blockquote():
                 self.output.content += '\n\n'
@@ -79,6 +82,10 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
     tags_to_ignore_recursively: ClassVar[List[TagData]] = [
         TagData(tag='aside', attrs={}),
         TagData(tag='figure', attrs={}),
+        TagData(tag='span', attrs={'class': 'post__author__name'}),
+        TagData(tag='time', attrs={'class': 'single__post__date'}),
+        TagData(tag='div', attrs={'class': 'single__post_author-box'}),
+        TagData(tag='div', attrs={'class': 'single__post__main-info'}),
     ]
 
     tags_to_ignore_individually: ClassVar[List[TagData]] = [
@@ -86,6 +93,7 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
         TagData(tag='figure', attrs={}),
         TagData(tag='h2', attrs={}),
         TagData(tag='div', attrs={'class': 'quote-socials'}),
+        TagData(tag='h1', attrs={'class': 'single__post__title'}),
     ]
 
     def get_tags_with_suppressed_validation(self) -> List[TagData]:
@@ -93,6 +101,8 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
             TagData(tag='blockquote', attrs={'class': 'quote-box'}),
             TagData(tag='div', attrs={'class': 'quote-content'}),
             TagData(tag='div', attrs={'class': 'quote-text-box'}),
+            TagData(tag='div', attrs={'class': 'single__post'}),
+            TagData(tag='div', attrs={}),
         ]
 
     def get_tags_to_ignore(self) -> List[TagData]:
@@ -132,9 +142,9 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
         if last_tag.tag == "title":
             self.output.title += last_tag.cleaned_data
             return
-        if last_tag.tag == "script" and 'application/ld+json' == last_tag.attrs.get('type'):
-            self.output.metadata.update(json.loads(last_tag.data))
-            return
+        # if last_tag.tag == "script" and 'application/ld+json' == last_tag.attrs.get('type'):
+        #     self.output.metadata.update(json.loads(last_tag.data))
+        #     return
 
         if self.is_content():
             if self.is_part_of_blockquote() and last_tag.tag == 'p':
@@ -146,7 +156,7 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
                 return
 
             if self.is_header(last_tag):
-                self.output.content += f"[H] {last_tag.cleaned_data.rstrip()}\n\n"
+                self.output.content += f"{self.header_marker} {last_tag.cleaned_data.rstrip()}\n\n"
                 return
 
             if last_tag.tag == 'a':
@@ -165,11 +175,11 @@ class WiezHTMLParser(ArticleHTMLParser, ABC):
             return
         super().check_ignored_tag(last_tag=last_tag, data=data)
 
+    def should_stop_processing(self) -> bool:
+        last_tag = self.tag_hierarchy[-1].td
+        return (last_tag.tag == 'div'
+                and 'class' in last_tag.attrs
+                and (last_tag.attrs['class'] == 'post__tags'))
+
     def postprocess_metadata(self) -> None:
-        for item in self.output.metadata['@graph']:
-            if item['@type'] == 'Person':
-                self.output.author = item['name']
-            if item['@type'] == 'BlogPosting':
-                self.output.title = item['headline']
-                self.output.pub_date = datetime.fromisoformat(item['datePublished'])
-                self.output.last_updated = datetime.fromisoformat(item['dateModified'])
+        super().postprocess_metadata()

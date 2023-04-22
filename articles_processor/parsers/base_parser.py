@@ -1,10 +1,12 @@
+import json
 import logging
+import re
 from abc import ABC, abstractmethod
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, date
 from enum import Enum, auto
 from html.parser import HTMLParser
-from typing import List, Dict, Tuple, Optional, ClassVar
+from typing import List, Dict, Tuple, Optional, ClassVar, Pattern, Union
 
 from articles_processor.parser_types import OutputData
 
@@ -36,6 +38,17 @@ class TagStatus(Enum):
 class TagEntry:
     td: TagData
     status: TagStatus
+    tag_no: int
+    level: int
+
+
+class ListType(Enum):
+    ORDERED = auto()
+    UNORDERED = auto()
+
+
+def get_individual_attr_pattern(s: str):
+    return re.compile(f"(?:^| ){s}(?: |$)")
 
 
 class ArticleHTMLParser(HTMLParser, ABC):
@@ -43,13 +56,19 @@ class ArticleHTMLParser(HTMLParser, ABC):
         super().__init__()
         self.output = OutputData()
         self.level: int = 0
+        self.tag_no = 0
         self.tag_hierarchy: List[TagEntry] = []
         self.stop_processing: bool = False
         "No further tags should be (actively) processed."
+        self.list_type: Optional[ListType] = None
 
-    header_marker: ClassVar[str] = '[H] '
-    quote_marker: ClassVar[str] = '[Q] '
+    header_marker: ClassVar[str] = '[HEADER] '
+    quote_marker: ClassVar[str] = '[QUOTE] '
     italics_marker: ClassVar[str] = '//'
+    list_markers: ClassVar[Dict[ListType, str]] = {
+        ListType.ORDERED: '-',
+        ListType.UNORDERED: '*',
+    }
 
     def get_tags_to_ignore(self) -> List[TagData]:
         return [
@@ -58,6 +77,7 @@ class ArticleHTMLParser(HTMLParser, ABC):
             TagData(tag='figcaption', attrs={}),
             TagData(tag='script', attrs={'type': 'text/javascript'}),
             TagData(tag='script', attrs=None),
+            TagData(tag='picture', attrs=None),
         ]
 
     def get_tags_with_suppressed_validation(self) -> List[TagData]:
@@ -85,10 +105,25 @@ class ArticleHTMLParser(HTMLParser, ABC):
                 self.output.charset = charset.lower()
 
     def handle_startendtag(self, tag, attrs):
-        attrs_dict = self.parse_attrs(attrs)
-        if tag == 'link' and attrs_dict.get('rel') == 'canonical':
-            self.output.url = attrs_dict['href']
-        self.try_extract_charset(tag, attrs_dict)
+        self.tag_no += 1
+
+        tabs: str = "".join(self.level * ['  '])
+        status_str: str = "P"
+        logging.debug(f"{tabs}{tag}(/) <{status_str}> {self.parse_attrs(attrs)}")
+
+        current_tag = TagData(tag=tag, attrs=self.parse_attrs(attrs))
+        if tag == 'link' and current_tag.attrs.get('rel') == 'canonical':
+            self.output.url = current_tag.attrs['href']
+        self.try_extract_charset(tag, current_tag.attrs)
+
+        if tag == 'br':
+            self.output.content += '\n'
+            return
+
+        self.process_startendtag(current_tag)
+
+    def process_startendtag(self, tag: TagData) -> None:
+        pass
 
     def handle_starttag(self, tag, attrs):
         super().handle_starttag(tag, attrs)
@@ -103,14 +138,19 @@ class ArticleHTMLParser(HTMLParser, ABC):
         tabs: str = "".join(self.level * ['  '])
         status_str: str = f"{'I' if status == TagStatus.IGNORED else 'P'}{'+R' if self.is_ignored_in_hierarchy() else ''}"
 
-        if not status_str:
-            x = 1
-
         logging.debug(f"{tabs}{tag} <{status_str}> {attrs}")
 
+        level = self.tag_hierarchy[-1].level + 1 if self.tag_hierarchy else 0
+        self.tag_no += 1
         self.tag_hierarchy.append(TagEntry(td=current_tag,
-                                           status=status))
+                                           status=status,
+                                           tag_no=self.tag_no,
+                                           level=level
+                                           ))
         self.level += 1
+
+        if current_tag.tag == 'link' and current_tag.attrs.get('rel') == 'canonical':
+            self.output.url = current_tag.attrs['href']
 
         if self.should_stop_processing():
             logging.warning("Processing stopped!")
@@ -119,8 +159,8 @@ class ArticleHTMLParser(HTMLParser, ABC):
         if self.stop_processing:
             return
 
-        if current_tag.tag == 'div' and 'class' in current_tag.attrs and 'flex-row' in current_tag.attrs['class']:
-            x = 1
+        # if current_tag.tag == 'div' and 'class' in current_tag.attrs and 'flex-row' in current_tag.attrs['class']:
+        #     x = 1
 
         if self.is_ignored_in_hierarchy():
             # if current_tag.td.tag == 'div' and current_tag.td.attrs.get('class') == 'single__post__content':
@@ -132,9 +172,22 @@ class ArticleHTMLParser(HTMLParser, ABC):
         self.try_extract_charset(tag, current_tag.attrs)
 
         if self.is_content():
+            if current_tag.tag == 'ol':
+                self.list_type = ListType.ORDERED
+                return
+            if current_tag.tag == 'ul':
+                self.list_type = ListType.UNORDERED
+                return
+
             # italics
-            if current_tag.tag == 'i':
+            if current_tag.tag in {'i', 'em'}:
                 self.output.content += self.italics_marker
+
+            # list item
+            if current_tag.tag == 'li':
+                if self.output.content and self.output.content[-1] != '\n':
+                    self.output.content += '\n'
+                self.output.content += f"  {self.list_markers[self.list_type]} "
 
         self.process_starttag()
 
@@ -146,12 +199,17 @@ class ArticleHTMLParser(HTMLParser, ABC):
         return False
 
     def handle_endtag(self, tag):
-        self.process_endtag()
+        if not (self.stop_processing or self.is_ignored_in_hierarchy()):
+            self.process_endtag()
 
         if not self.stop_processing and self.is_content():
             # italics
-            if tag == 'i':
+            if tag in {'i', 'em'}:
                 self.output.content += self.italics_marker
+
+            if tag in {'ul', 'ol'}:
+                self.list_type = None
+                self.output.content += "\n"
 
         self.level -= 1
         tabs: str = "".join(self.level * ['  '])
@@ -168,11 +226,31 @@ class ArticleHTMLParser(HTMLParser, ABC):
             return
         self.tag_hierarchy[-1].td.data = data
 
-        if self.is_ignored_in_hierarchy():
+        if self.stop_processing or self.is_ignored_in_hierarchy():
             return
 
         # Handle some standard tags.
         last_tag = self.tag_hierarchy[-1].td
+
+        if last_tag.tag == "script" and 'application/ld+json' == last_tag.attrs.get('type'):
+            meta = json.loads(last_tag.data)
+            data_to_insert: Dict[str, dict] = {}
+            if key := meta.get('@type'):
+                data_to_insert[key] = meta
+            elif graph := meta.get('@graph'):
+                for item in graph:
+                    data_to_insert[item['@type']] = item
+            else:
+                raise NotImplementedError(f"Unknown meta format: {meta}")
+
+            for key, value in data_to_insert.items():
+                if key in self.output.metadata:
+                    logging.error(f'Duplicated <script type="application/ld+json"> key: {key}')
+                self.output.metadata[key] = value
+
+        # if (last_tag.tag == 'div' and 'class' in last_tag.attrs and 'cg_article_printed_info_details' in last_tag.attrs['class']):
+        #     x = 1
+
         if self.is_content():
             # if self.is_text_paragraph(last_tag) or self.is_article_lead(last_tag):
             #     self.output.content += last_tag.cleaned_data
@@ -199,10 +277,14 @@ class ArticleHTMLParser(HTMLParser, ABC):
             #         self.output.content += last_tag.cleaned_data
             #     return
 
-            # italics
-            if last_tag.tag == 'i':
+            if last_tag.tag in {'ol', 'ul'}:
+                return
+
+                # italics
+            if last_tag.tag in {'i', 'em'}:
                 # self.output.content += f"//{last_tag.cleaned_data}//"
-                self.output.content += last_tag.cleaned_data
+                # self.output.content += last_tag.cleaned_data
+                self.process_italics_data(last_tag)
                 return
 
             # bold
@@ -212,14 +294,23 @@ class ArticleHTMLParser(HTMLParser, ABC):
 
             # list item
             if last_tag.tag == 'li':
-                self.output.content += f"  * {last_tag.cleaned_data}"
-                if last_tag.cleaned_data.rstrip().endswith(';'):
+                # if self.output.content[-1] != '\n':
+                #     self.output.content += '\n'
+                # self.output.content += f"  * {last_tag.cleaned_data}"
+                self.output.content += last_tag.cleaned_data
+                if last_tag.cleaned_data.rstrip().endswith((';', '.')):
                     self.output.content += '\n'
-                if last_tag.cleaned_data.rstrip().endswith('.'):
-                    self.output.content += '\n\n'
+                return
+
+            # new line
+            if last_tag.tag == 'br':
+                self.output.content += '\n'
                 return
 
         self.process_data()
+
+    def process_italics_data(self, tag_data: TagData) -> None:
+        self.output.content += tag_data.cleaned_data
 
     @abstractmethod
     def process_data(self):
@@ -232,8 +323,12 @@ class ArticleHTMLParser(HTMLParser, ABC):
 
     @staticmethod
     def is_tag_match(td: TagData, td_list: List[TagData]) -> bool:
+        x = 1
         for ignored_tag_data in td_list:
             is_same_tag: bool = (td.tag == ignored_tag_data.tag)
+            if not is_same_tag:
+                continue
+
             has_same_attrs: bool = True
             if ignored_tag_data.attrs is None:
                 has_same_attrs = not td.attrs
@@ -242,10 +337,20 @@ class ArticleHTMLParser(HTMLParser, ABC):
                     if attr not in td.attrs:
                         has_same_attrs = False
                         break
-                    if isinstance(val, str):
-                        has_same_attrs = has_same_attrs and val in td.attrs[attr]
+
+                    def verify_chunk(v: Union[str, Pattern], td: TagData) -> bool:
+                        v_target = td.attrs[attr]
+                        if isinstance(v, str):
+                            return v in v_target
+                        elif isinstance(v, Pattern):
+                            return v.search(v_target) is not None
+                        else:
+                            raise TypeError(f"type(v): {type(v)}")
+
+                    if isinstance(val, str) or isinstance(val, Pattern):
+                        has_same_attrs = has_same_attrs and verify_chunk(val, td)
                     elif isinstance(val, set):
-                        has_same_attrs = has_same_attrs and all(v in td.attrs[attr] for v in val)
+                        has_same_attrs = has_same_attrs and all(verify_chunk(v, td) for v in val)
                     else:
                         raise ValueError(f'Invalid attr value: {attr} -> {val}')
             if is_same_tag and has_same_attrs:
@@ -268,9 +373,7 @@ class ArticleHTMLParser(HTMLParser, ABC):
         super().feed(data)
         self.postprocess_metadata()
 
-        assert self.output.url, "No URL was assigned to the article!"
-        assert self.output.author, 'Unknown author!'
-        assert self.output.author, 'Unknown headline!'
+        self.output.verify_data()
 
         self.output.title = self.output.title.strip()
 
@@ -290,6 +393,8 @@ class ArticleHTMLParser(HTMLParser, ABC):
             # else:
             self.output.last_updated = mod_date_meta
 
+        self.remove_extra_metadata()
+
         def remove_nbsps(s: str) -> str:
             return s.replace("\u00a0", " ")
 
@@ -297,10 +402,81 @@ class ArticleHTMLParser(HTMLParser, ABC):
         self.output.content = self.output.content.rstrip()
         self.output.content = self.output.content.replace("„", '"')
         self.output.content = self.output.content.replace("”", '"')
-        self.remove_extra_metadata()
+        # Remove "orphaned" italics markers.
+        self.output.content = re.sub(r"////", "", self.output.content)
+        # Remove excessive newlines.
+        self.output.content = re.sub(r"\n{2,}", "\n\n", self.output.content)
+        # Fix multiple consecutive spaces (unless at the beginning of a line - as part of DokuWiki list syntax).
+        self.output.content = re.sub(r"(?<!\n) {2,}", " ", self.output.content)
+        # Remove spaces before punctuation.
+        self.output.content = re.sub(r" (?=[,\.;])", "", self.output.content)
+        # Remove newlines before lowercase latters.
+        self.output.content = re.sub(r"\n+(?=[a-z])", "", self.output.content)
+        # Remove newlines between list and preceeding paragraph.
+        self.output.content = re.sub(r"\n+(?= {2}\*)", "\n", self.output.content)
 
     def postprocess_metadata(self) -> None:
-        return
+
+        def get_headline(entry: dict):
+            if headline := entry.get('headline'):
+                headline = re.sub("&quot;", "``", headline, count=1)
+                headline = re.sub("&quot;", "''", headline, count=1)
+                self.output.title = headline
+
+        def get_pub_date(entry: dict):
+            if pub_date := entry.get('datePublished'):
+                try:
+                    self.output.pub_date = datetime.fromisoformat(pub_date)
+                except ValueError as e:
+                    logging.error(str(e))
+
+        def get_mod_date(entry: dict):
+            if mod_date := entry.get('dateModified'):
+                try:
+                    self.output.last_updated = datetime.fromisoformat(mod_date)
+                except ValueError as e:
+                    logging.error(str(e))
+
+        def get_author(entry: dict):
+            # if author_element := entry.get('author'):
+            if isinstance(entry, dict):
+                self.output.author = entry['name']
+            elif isinstance(entry, list):
+                self.output.author = " and ".join(author['name'] for author in entry)
+            else:
+                raise NotImplementedError(f"author of type `{type(entry)}` not (yet) supported.")
+
+        # if '@graph' in self.output.metadata:
+        #     for item in self.output.metadata['@graph']:
+        #         if item['@type'] == 'Person':
+        #             self.output.author = item['name']
+        #         if item['@type'] == 'BlogPosting':
+        #             self.output.title = item['headline']
+        #             self.output.pub_date = datetime.fromisoformat(item['datePublished'])
+        #             self.output.last_updated = datetime.fromisoformat(item['dateModified'])
+
+        if person := self.output.metadata.get('Person'):
+            get_author(person)
+
+        if blog_posting := self.output.metadata.get('BlogPosting'):
+            get_headline(blog_posting)
+            get_pub_date(blog_posting)
+            get_mod_date(blog_posting)
+
+        if news := self.output.metadata.get('NewsArticle'):
+            if author := news.get('author'):
+                get_author(author)
+            get_headline(news)
+            get_pub_date(news)
+            get_mod_date(news)
+
+            if url := news.get('url'):
+                self.output.url = url
+            elif mainEntityOfPage := news.get('mainEntityOfPage'):
+                if isinstance(mainEntityOfPage, str) and 'http' in mainEntityOfPage:
+                    self.output.url = mainEntityOfPage
+                elif url := mainEntityOfPage.get('url'):
+                    self.output.url = url
 
     def remove_extra_metadata(self):
         for tag in ['@context', '@type', 'articleSection', 'hasPart',

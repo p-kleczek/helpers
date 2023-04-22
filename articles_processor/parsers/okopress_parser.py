@@ -93,6 +93,8 @@ class OKOPressHTMLParser(ArticleHTMLParser, ABC):
         TagData(tag='div', attrs={'class': 'mt-4'}),
         TagData(tag='span', attrs={'class': 'sr-only'}),
         TagData(tag='div', attrs={'class': 'hidden'}),
+        TagData(tag='div', attrs={'class': 'flex flex-col md:flex-row'}),
+        TagData(tag='p', attrs={'class': {'uppercase', 'leading-4', 'text-right'}}),
     ]
 
     tags_to_ignore_individually: ClassVar[List[TagData]] = [
@@ -107,6 +109,8 @@ class OKOPressHTMLParser(ArticleHTMLParser, ABC):
         TagData(tag='div', attrs={'class': {'ml-4', 'flex', 'flex-col'}}),
         TagData(tag='div', attrs={'class': {'mt-7', 'xl:mt-10'}}),
         TagData(tag='p', attrs={'class': 'hidden'}),
+        TagData(tag='style', attrs={}),
+        TagData(tag='div', attrs={'style': ''}),
     ]
 
     def get_tags_to_ignore(self) -> List[TagData]:
@@ -125,16 +129,23 @@ class OKOPressHTMLParser(ArticleHTMLParser, ABC):
         if last_tag.tag == "title":
             self.output.title += last_tag.cleaned_data
             return
-        if last_tag.tag == "script" and 'application/ld+json' == last_tag.attrs.get('type', None):
-            self.output.metadata.update(json.loads(last_tag.data))
-            return
+        # if last_tag.tag == "script" and 'application/ld+json' == last_tag.attrs.get('type', None):
+        #     self.output.metadata.update(json.loads(last_tag.data))
+        #     return
 
         if last_tag.tag == 'p':
             x = 1
 
         if self.is_content():
             if self.is_text_paragraph(last_tag) or self.is_article_lead(last_tag):
+                if (self.output.content[-1] != '\n'
+                        and not self.output.content.endswith(" ")):
+                    self.output.content += " "
                 self.output.content += last_tag.cleaned_data
+                return
+
+            if last_tag.tag == 'div' and last_tag.attrs.get('type') == 'button':
+                self.output.content += f"[BUTTON] {last_tag.cleaned_data}\n"
                 return
 
             if self.is_block_quote(last_tag):
@@ -145,6 +156,9 @@ class OKOPressHTMLParser(ArticleHTMLParser, ABC):
                 if 'Przeczytaj także:' in last_tag.data:
                     # self.stop_processing = True
                     return
+
+                if self.output.content and self.output.content[-1] != '\n':
+                    self.output.content += "\n\n"
 
                 self.output.content += f"{self.header_marker}{last_tag.cleaned_data.rstrip()}\n\n"
                 return
@@ -196,10 +210,12 @@ class OKOPressHTMLParser(ArticleHTMLParser, ABC):
         super().feed(data)
 
     def postprocess_metadata(self) -> None:
-        self.output.author = self.output.metadata['author']['name']
-        self.output.title = self.output.metadata['headline']
+        super().postprocess_metadata()
+        # self.output.author = self.output.metadata['author']['name']
+        # self.output.title = self.output.metadata['headline']
 
     def remove_extra_metadata(self):
-        for tag in ['url', 'description', '@id', '@type']:
-            if tag in self.output.metadata['author']:
-                self.output.metadata['author'].pop(tag)
+        pass
+        # for tag in ['url', 'description', '@id', '@type']:
+        #     if tag in self.output.metadata['author']:
+        #         self.output.metadata['author'].pop(tag)

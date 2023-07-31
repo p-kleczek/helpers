@@ -3,6 +3,7 @@
 # 36867
 # Image.open(path).getexif()[]
 import os
+import shutil
 from os import walk
 from pathlib import Path
 from typing import List, Tuple
@@ -13,24 +14,37 @@ from photos_processor.photos_creation_time import create_date_taken_prefix, get_
 
 # '2014:07:27 00:33:11'
 
+make_copy: bool = True
+"If True, a (renamed) copy of a photo will be made."
+DEBUG_ON: bool = True
+do_rename: bool = False
+"Should the rename be actually performed?"
+
 if __name__ == "__main__":
     # dir_path = r'I:\DATA\Multimedia\Zdjęcia\2020-08-08_16 - Rumunia\Rumunia - MT\fix'
     # dir_path = r'C:\Users\Pawel\Downloads\Zdjęcia\2021-07-23_08-01 - Mazury [z Anetą]'
     # dir_path = r'C:\Users\Pawel\Downloads\Zdjęcia\2021-07-23_08-01 - Mazury [z Anetą]\rename'
     # dir_path: Path = Path(r'H:\DATA\Multimedia\Zdjęcia prywatne\2022-04-29_05-05 - Barcelona, Katalonia, Andora\Rename')
-    in_dir_path: Path = Path(r'D:\! TEMP\test_images')
-    in_dir_path: Path = Path(r'H:\Multimedia\Zdjęcia\2022-08-13_28 - Bałkany 2022\ALL_Nikon')
+    # in_dir_path: Path = Path(r'D:\! TEMP\test_images')
+    # in_dir_path: Path = Path(r'H:\Multimedia\Zdjęcia\2022-08-13_28 - Bałkany 2022\ALL_Nikon')
 
-    make_copy: bool = True
-    """If True, a (renamed) copy of a photo will be made."""
+    # Bałkany
+    # in_dir_path: Path = Path(r'/media/pawel/Samsung_T5/Multimedia/Zdjęcia/2022-08-13_28 - Bałkany 2022 {VARIA}/Ania&Rafal/')
+    # in_dir_path: Path = Path(r'/media/pawel/Samsung_T5/Multimedia/Zdjęcia/2022-08-13_28 - Bałkany 2022 {VARIA}/Redmi 4A/')
+    # in_dir_path: Path = Path(r'/media/pawel/Samsung_T5/Multimedia/Zdjęcia/2022-08-13_28 - Bałkany 2022 {VARIA}/Samsung/')
+
+    # Podróż poślubna
+    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/')
+    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/iPhone_PK/')
+    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/iPhone_AK/')
+    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/MOV_test/')
+
+    # ---
 
     out_dir_path: Path = in_dir_path / "_RENAMED_" if make_copy else in_dir_path
 
     if not make_copy:
         assert str(in_dir_path).endswith('Rename'), "The input path must end with `Rename.`"
-
-    DEBUG_ON: bool = True
-    do_rename: bool = False
 
     if not DEBUG_ON:
         if do_rename:
@@ -43,6 +57,9 @@ if __name__ == "__main__":
 
     change_list: List[Tuple[str, str]] = []  # Old -> New
 
+    if make_copy and not out_dir_path.exists():
+        os.makedirs(out_dir_path)
+
     (_, _, filenames) = next(walk(in_dir_path))
     for old_filename in filenames:
         old_path: Path = in_dir_path / old_filename
@@ -50,7 +67,8 @@ if __name__ == "__main__":
             take_datetime = get_datetime_taken(old_path)
             prefix = create_date_taken_prefix(taken_datetime=take_datetime, is_short=False)
             # prefix = filename[:-4].replace('.', '-').replace(' ', '_')
-        except (KeyError, UnidentifiedImageError, ValueError):
+        except (KeyError, UnidentifiedImageError, ValueError) as e:
+            print(f"ERROR: {e}")
             continue
         new_filename: str = f'{prefix}_{old_filename}'
         new_path = out_dir_path / new_filename
@@ -59,8 +77,12 @@ if __name__ == "__main__":
             print(f'{old_path} -> {new_path}')
 
         if do_rename:
-            os.rename(old_path, new_path)
+            if make_copy:
+                shutil.copy2(old_path, new_path)
+            else:
+                os.rename(old_path, new_path)
 
+        # change_list.append((old_filename, new_filename))
         change_list.append((old_filename, new_filename))
 
     print('Done! :)')

@@ -19,8 +19,18 @@ from pathlib import Path
 
 from PIL import Image
 
+# In order to install 'pyexiv2', first install:
+#   apt install exiv2
+#   apt install python3-dev
+#   apt install libexiv2-dev
+#   apt install libboost-python-dev
+# import pyexiv2
+
+# pip install PyExifTool
+import exiftool
+
 img_datetime_filename_chunk_pattern = re.compile(
-    r'.*(?P<full>(?P<Y>\d{4})(?P<m>\d{2})(?P<d>\d{2})_(?P<H>\d{2})(?P<M>\d{2})(?P<S>\d{2})).*')
+    r'(?P<full>(?P<Y>\d{4})(?P<m>\d{2})(?P<d>\d{2})_(?P<H>\d{2})(?P<M>\d{2})(?P<S>\d{2}))')
 "YYYYmmdd_MMHHSS (np. IMG_20201005_071043.JPG)"
 
 exif_datetime_pattern = re.compile(
@@ -30,8 +40,8 @@ exif_datetime_pattern = re.compile(
 def get_datetime_taken(path: Path) -> datetime:
     file_extension: str = str(path.suffix).lower()
 
-    if (m := img_datetime_filename_chunk_pattern.match(str(path))) is not None:
-        t = datetime.strptime(m.group(0), "%Y%m%d_%H%M%S")
+    if (m := img_datetime_filename_chunk_pattern.search(str(path))) is not None:
+        t = datetime.strptime(m.group('full'), "%Y%m%d_%H%M%S")
     elif file_extension in ('.jpeg', '.jpg'):
         # EXIF tags: https://exiv2.org/tags.html
         # *) 36867 : Exif.Photo.DateTimeOriginal
@@ -41,7 +51,11 @@ def get_datetime_taken(path: Path) -> datetime:
         m = exif_datetime_pattern.fullmatch(date_taken_str)
         assert m is not None, f"The EXIF date taken value (`{date_taken_str}`) does not match the pattern!"
         t = datetime.strptime(date_taken_str, "%Y:%m:%d %H:%M:%S")
-    elif file_extension in ('.mp4', '.mov'):
+    elif file_extension == '.mov':
+        with exiftool.ExifToolHelper() as et:
+            metadata = et.get_metadata([str(path)])[0]
+        t = datetime.strptime(metadata['QuickTime:CreationDate'], "%Y:%m:%d %H:%M:%S%z")  # '2023:06:23 11:56:43+02:00'
+    elif file_extension == '.mp4':
         date_taken_struct = time.gmtime(os.path.getmtime(path))
         t = datetime(*date_taken_struct[:6])
         # FIXME: Adjust for timezone.

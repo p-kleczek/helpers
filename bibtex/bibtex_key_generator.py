@@ -3,15 +3,7 @@ import re
 # ============================================================================
 
 title_org = """
-Księża wobec bezpieki na przykładzie Archidiecezji krakowskiej
-znak
-2007
-""".strip()
-
-title_org = """
-Stanowisko Rady Stałej Konferencji Episkopatu Polski wobec działań Jana Pawła II odnoszących się do przestępstw seksualnych wobec małoletnich
-episkopat
-2022-11-18
+Receiving signals with signal handlers
 """.strip()
 
 # ============================================================================

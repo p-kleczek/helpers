@@ -17,7 +17,7 @@ from photos_processor.photos_creation_time import create_date_taken_prefix, get_
 make_copy: bool = True
 "If True, a (renamed) copy of a photo will be made."
 DEBUG_ON: bool = True
-do_rename: bool = False
+do_rename: bool = True
 "Should the rename be actually performed?"
 
 if __name__ == "__main__":
@@ -34,10 +34,15 @@ if __name__ == "__main__":
     # in_dir_path: Path = Path(r'/media/pawel/Samsung_T5/Multimedia/Zdjęcia/2022-08-13_28 - Bałkany 2022 {VARIA}/Samsung/')
 
     # Podróż poślubna
-    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/')
-    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/iPhone_PK/')
-    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/iPhone_AK/')
-    in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/MOV_test/')
+    # in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/')
+    # in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/iPhone_PK/')
+    # in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/iPhone_AK/')
+    # in_dir_path: Path = Path(r'/media/pawel/data/My Pictures/2023-06-08_25 - Podróż poślubna/MOV_test/')
+
+    # Podlasie 2023
+    # in_dir_path: Path = Path(r'/home/pawel/Pictures/Podlasie 2023/AK/')
+    # in_dir_path: Path = Path(r'/home/pawel/Pictures/Podlasie 2023/Nikon/')
+    # in_dir_path: Path = Path(r'/home/pawel/Pictures/Podlasie 2023/PK/')
 
     # ---
 

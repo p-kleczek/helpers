@@ -1,0 +1,55 @@
+Mapa "Warto zobaczyć"
+
+- ostrzeżenie, gdy obiekty zbyt blisko siebie
+- scalanie duplikatów => uwaga na status odwiedzenia!
+- sortowanie alfabetyczne
+- warstwa "noclegi" -> automatycznie, na podstawie typu ikony
+
+Warstwy:
+- Atrakcje - Polska
+- Atrakcje - Świat
+- Noclegi
+- Trasy odwiedzone
+
+
+
+<Document>
+    <Style>*
+    <StyleMap>*
+    <Folder>*
+      <name>
+      <Placemark>
+        <name>
+        <styleUrl>
+        {OPT}
+        <Point>
+          <coordinates>
+            20.4067731,52.6252736,0
+          </coordinates>
+        </Point>
+        <LineString>
+          <tessellate>1</tessellate>
+          <coordinates>
+            x,y,z*
+          </coordinates>
+        </LineString>
+        {/OPT}
+      </Placemark>
+    </Folder>
+
+
+<Style>
+- jeśli ten sam `id` oraz wszystkie parametry takie same -> pominąć
+- jeśli wszystkie parametry takie same -> ujednolicić z istniejącym stylem
+- jeśli ten sam `id`, ale różne parametry -> zmienić `id` importowanego stylu
+
+<StyleMap>
+zob. <Style>
+
+
+<Folder>
+
+
+
+https://lxml.de/api/lxml.etree.CDATA-class.html
+

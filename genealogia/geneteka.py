@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
+import copy
 import json
 import logging
+import math
 import urllib.request
 import urllib.parse
 from enum import StrEnum
@@ -102,17 +104,41 @@ sample_query_params = {
 }
 
 geneteka_url = "https://geneteka.genealodzy.pl/index.php"
+acts_url = "https://geneteka.genealodzy.pl/api/getAct.php"
 
+MAX_ENTRIES_PER_REQUEST = 50
 
-# FIXME: Handle multiple pages.
 
 def query_births(common_params: Dict):
-    url = "https://geneteka.genealodzy.pl/api/getAct.php"
-    charset: str = "UTF-8"
+    init_results = query_births_page(common_params)
+    total_results = int(init_results['recordsTotal'])
+
+    aggregated_data = init_results['data']
+
+    for page_inx in range(1, int(math.ceil(total_results / MAX_ENTRIES_PER_REQUEST))):
+        subsequent_results = query_births_page(common_params, page_inx=page_inx)
+        aggregated_data.extend(subsequent_results['data'])
+
+    return aggregated_data
+
+
+def query_births_page(common_params: Dict, page_inx: int = 0):
+    """
+    Query a single page with results (up to 50 entries).
+    :param common_params:
+    :param page_inx:
+    :return:
+    """
+    this_common_params = copy.copy(common_params)
+    if page_inx > 0:
+        this_common_params['rpp1'] = page_inx * MAX_ENTRIES_PER_REQUEST
+        this_common_params['rpp2'] = MAX_ENTRIES_PER_REQUEST
+        this_common_params['ordertable'] = '[[0,"asc"],[1,"asc"],[2,"asc"]]'
+        this_common_params['searchtable'] = ""
 
     params = {}
 
-    params['draw'] = 1
+    params['draw'] = 1  # Licznik zwiększany o 1 wraz z każdym przeklikiwaniem się między stronami tabeli.
 
     for column_inx in range(10):
         column_data = {
@@ -134,28 +160,18 @@ def query_births(common_params: Dict):
         for k, v in order_data.items():
             params[f'order[{order_inx}]{k}'] = v
 
-    params['start'] = 0  # FIXME: To pewnie podział na strony.
-    params['length'] = 50  # FIXME: Czy można dać więcej (niż 50)? Żeby nie było podziału na strony?
+    params['start'] = page_inx * MAX_ENTRIES_PER_REQUEST
+    params['length'] = MAX_ENTRIES_PER_REQUEST
 
     params['search[value]'] = ""
     params['search[regex]'] = 'false'
 
-    for k, v in common_params.items():
+    for k, v in this_common_params.items():
         params[k] = v
-
-    # def random_with_n_digits(n):
-    #     range_start = 10 ** (n - 1)
-    #     range_end = (10 ** n) - 1
-    #     return randint(range_start, range_end)
-    #
-    # # See: https://api.jquery.com/jquery.ajax/ (`cache` param)
-    # unserscore = '1700816545053'
-    #
-    # # params['_'] = str(random_with_n_digits(13))  # "1700816545053"  # FIXME: Generate random number
-    # # params['_'] = unserscore  # Anti-cache parameter.
 
     def compose_url(url: str, params: Dict) -> str:
         def encode_brackets(s: str) -> str:
+            # FIXME: Maybe it is already performed automatically?
             return s.replace('[', '%5B').replace(']', '%5D')
 
         params_str = '&'.join(f"{encode_brackets(k)}={urllib.parse.quote(str(v).encode('utf-8'))}"
@@ -167,8 +183,11 @@ def query_births(common_params: Dict):
     session = requests.Session()  # Connection: keep-alive (by default)
     session.head(geneteka_url)
 
+    url = compose_url(url=acts_url, params=params)
+    referer = compose_url(url=geneteka_url, params=this_common_params)
+
     resp = session.get(
-        compose_url(url=url, params=params),
+        url,
         headers={
             'Host': "geneteka.genealodzy.pl",
             'Accept': "application/json, text/javascript, */*; q=0.01",
@@ -177,7 +196,7 @@ def query_births(common_params: Dict):
             'Content-Type': "application/json; charset=UTF-8",
             'X-Requested-With': "XMLHttpRequest",
             'Connection': "keep-alive",
-            'Referer': compose_url(url=geneteka_url, params=common_params),
+            'Referer': referer,
             'Sec-Fetch-Dest': "empty",
             'Sec-Fetch-Mode': "cors",
             'Sec-Fetch-Site': "same-origin",
@@ -187,47 +206,50 @@ def query_births(common_params: Dict):
         })
     json_out = resp.json()
 
-    print('Total: ', json_out['recordsTotal'])
-    print('Current batch: ', len(json_out['data']))
-
     return json_out
 
 
-def load_url(url: str = "https://geneteka.genealodzy.pl/index.php", charset: str = "UTF-8"):
-    params = {
-        'op': 'gt',
-        'lang': 'pol',
-        'bdm': 'B',
-        'w': '01ds',
-        'rid': 'B',
-        'search_lastname': 'gadomski',
-        'search_name': 'Józef',
-        'search_lastname2': '',
-        'search_name2': '',
-        'from_date': '1820',
-        'to_date': '1885',
-        'exac': '1',
-        'pair': '1',
-        'parents': '1',
-    }
-
-    # FIXME: Encode values
-    # data = urllib.parse.urlencode('Józef').encode(encoding='utf-8', errors='ignore')
-
-    params_str = '&'.join(f"{k}={urllib.parse.quote(v.encode('utf-8'))}" for k, v in params.items())
-    url_with_params = f"{url}?{params_str}"
-
-    req = urllib.request.Request(url_with_params, headers={'User-Agent': "Magic Browser"})
-    parser_input = None
-    with urllib.request.urlopen(req) as response:
-        html_reponse = response.read()
-        parser_input = html_reponse.decode(charset)
-
-    return parser_input
+# def load_url(url: str = "https://geneteka.genealodzy.pl/index.php", charset: str = "UTF-8"):
+#     params = {
+#         'op': 'gt',
+#         'lang': 'pol',
+#         'bdm': 'B',
+#         'w': '01ds',
+#         'rid': 'B',
+#         'search_lastname': 'gadomski',
+#         'search_name': 'Józef',
+#         'search_lastname2': '',
+#         'search_name2': '',
+#         'from_date': '1820',
+#         'to_date': '1885',
+#         'exac': '1',
+#         'pair': '1',
+#         'parents': '1',
+#     }
+#
+#     params_str = '&'.join(f"{k}={urllib.parse.quote(v.encode('utf-8'))}" for k, v in params.items())
+#     url_with_params = f"{url}?{params_str}"
+#
+#     req = urllib.request.Request(url_with_params, headers={'User-Agent': "Magic Browser"})
+#     parser_input = None
+#     with urllib.request.urlopen(req) as response:
+#         html_reponse = response.read()
+#         parser_input = html_reponse.decode(charset)
+#
+#     return parser_input
 
 
-# parser_input = load_url()
-parser_input = query_births(sample_query_params)
+# init_results = query_births_page(sample_query_params, page_inx=1)
+
+# json_out = load_url()
+json_out = query_births(sample_query_params)
+
+print(len(json_out))
+if json_out:
+    print(json_out[0])
+
+# print('Total: ', json_out['recordsTotal'])
+# print('Current batch: ', len(json_out['data']))
 
 # x = 1
 # print(parser_input)

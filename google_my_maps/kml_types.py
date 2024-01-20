@@ -8,10 +8,19 @@ class Icon:
 
 
 @dataclass
+class HotSpot:
+    x: int
+    xunits: str
+    y: int
+    yunits: str
+
+
+@dataclass
 class IconStyle:
     color: str
     scale: float
     icon: Icon
+    hotSpot: Optional[HotSpot] = None
 
 
 @dataclass

@@ -15,15 +15,16 @@ import os.path
 import re
 import time
 from datetime import datetime, timedelta
+from enum import IntEnum
 from pathlib import Path
 
 from PIL import Image
 
 # In order to install 'pyexiv2', first install:
-#   apt install exiv2
-#   apt install python3-dev
-#   apt install libexiv2-dev
-#   apt install libboost-python-dev
+#   sudo apt install exiv2
+#   sudo apt install python3-dev
+#   sudo apt install libexiv2-dev
+#   sudo apt install libboost-python-dev
 # import pyexiv2
 
 # pip install PyExifTool
@@ -37,6 +38,20 @@ exif_datetime_pattern = re.compile(
     r'.*(?P<Y>\d{4}):(?P<m>\d{2}):(?P<d>\d{2}) (?P<H>\d{2}):(?P<M>\d{2}):(?P<S>\d{2})')
 
 
+class ExifTag(IntEnum):
+    """See: https://www.awaresystems.be/imaging/tiff/tifftags/search.html"""
+    Make = 271
+    "The scanner manufacturer."
+    DateTime = 306
+    "Date and time of image creation."
+    DateTimeOriginal = 36867
+    "The date and time when the original image data was generated."
+
+
+class NotCameraImageException(Exception):
+    pass
+
+
 def get_datetime_taken(path: Path) -> datetime:
     file_extension: str = str(path.suffix).lower()
 
@@ -44,10 +59,11 @@ def get_datetime_taken(path: Path) -> datetime:
         t = datetime.strptime(m.group('full'), "%Y%m%d_%H%M%S")
     elif file_extension in ('.jpeg', '.jpg'):
         # EXIF tags: https://exiv2.org/tags.html
-        # *) 36867 : Exif.Photo.DateTimeOriginal
         exif = Image.open(path).getexif()._get_merged_dict()
-        # date_taken_str: str = exif[306]
-        date_taken_str: str = exif[36867]
+        if ExifTag.Make.value not in exif:
+            raise NotCameraImageException(f"{path} was NOT created using a camera"
+                                          f" (it does not contain EXIF scanner manufacturer tag).")
+        date_taken_str: str = exif[ExifTag.DateTimeOriginal.value]
         m = exif_datetime_pattern.fullmatch(date_taken_str)
         assert m is not None, f"The EXIF date taken value (`{date_taken_str}`) does not match the pattern!"
         t = datetime.strptime(date_taken_str, "%Y:%m:%d %H:%M:%S")

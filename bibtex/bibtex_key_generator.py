@@ -2,10 +2,10 @@ import re
 
 # ============================================================================
 
-title_org = """
-Receiving signals with signal handlers
-""".strip()
 
+title_org = """
+rejestry poradlnego woj krakowskie
+""".strip()
 # ============================================================================
 
 def generate_bibtex_key(raw_key: str) -> str:
@@ -14,6 +14,9 @@ def generate_bibtex_key(raw_key: str) -> str:
     title_new = re.sub(r'[ \-\n]', '_', title_new)
 
     replacement_tab = {
+        # interpunkcja
+        '–': '_',
+        # polski
         'ą': 'a',
         'ć': 'c',
         'ę': 'e',
@@ -23,6 +26,23 @@ def generate_bibtex_key(raw_key: str) -> str:
         'ś': 's',
         'ź': 'z',
         'ż': 'z',
+        # niemiecki
+        'ß': 'ss',
+        'ä': 'a',
+        'ü': 'u',
+        'ö': 'o',
+        # czeski
+        'á': 'a',
+        'é': 'e',
+        'ě': 'e',
+        'ř': 'r',
+        'č': 'c',
+        'ů': 'u',
+        'í': 'i',
+        'ň': 'n',
+        'š': 's',
+        'ý': 'y',
+        'ž': 'z',
     }
 
     for (co, cn) in replacement_tab.items():

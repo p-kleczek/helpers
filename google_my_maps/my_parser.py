@@ -1,16 +1,36 @@
 import re
-from enum import Enum, auto
+from enum import Enum, auto, StrEnum
 from pathlib import Path
 from typing import List, Dict, Optional, Type, Set
 
 import lxml.etree
 from lxml import etree
+
 from lxml.etree import CDATA
 
-import xml.etree.ElementTree as ET
-
 from google_my_maps.kml_types import Document, Style, IconStyle, Icon, LabelStyle, BalloonStyle, StyleMap, LineStyle, \
-    Coordinate, Point, Line, Folder, PlacemarkType, Data, ExtendedData, HotSpot
+    Coordinate, Point, Line, Folder, PlacemarkType, Data, ExtendedData, HotSpot, Text, MAX_COORDINATE_DIGITS
+from google_my_maps.marking import StatusColors, Icons
+
+
+class Folders(StrEnum):
+    POIS = "POIs"
+    "Punkty, trasy wycieczek pieszych i rowerowych itp."
+
+    TRANSPORTATION = "Transport"
+    "Informacje związane np. z siecią kolejową, lotniskami itp."
+
+    ACCOMMODATION = "Noclegi"
+
+    TRIPS = "Wyprawy"
+    "Archiwalne trasy wypraw"
+
+    AUXILIARY = "Dodatkowe"
+    "Dodatkowe punkty, przydatne przy planowaniu wypraw"
+
+
+def create_placemark_style_id(icon: Icons, status: StatusColors) -> str:
+    return f"icon-{icon}-{status}"
 
 
 class XmlEngine(Enum):
@@ -19,6 +39,13 @@ class XmlEngine(Enum):
 
 
 xml_engine: XmlEngine = XmlEngine.LXML
+
+if xml_engine == XmlEngine.XML:
+    import xml.etree.ElementTree as ET
+elif xml_engine == XmlEngine.LXML:
+    import lxml.etree as ET
+else:
+    raise NotImplementedError
 
 NodeType: Type = {
     XmlEngine.XML: ET.Element,
@@ -65,24 +92,26 @@ class MyParser:
                 case 'BalloonStyle':
                     text = child.find('text').text
                     style.balloon_style = BalloonStyle(
-                        text=self.get_cdata_text(text)
+                        text=Text(text)
                     )
                 case _:
                     raise NotImplementedError(tag)
 
         return style
 
-    @staticmethod
-    def get_cdata_text(text: str | lxml.etree.CDATA) -> str | lxml.etree.CDATA:
-        if isinstance(text, lxml.etree.CDATA):
-            return text
-
-        if not isinstance(text, str):
-            raise TypeError(f"text is of type: {type(text)}")
-
-        if any(c in text for c in "&<>\'\""):
-            return CDATA(text)
-        return text
+    # @staticmethod
+    # def get_cdata_text(text: str | lxml.etree.CDATA) -> Optional[str | lxml.etree.CDATA]:
+    #     if text is None:
+    #         return None
+    #
+    #     if isinstance(text, lxml.etree.CDATA):
+    #         pass
+    #     elif not isinstance(text, str):
+    #         raise TypeError(f"text is of type: {type(text)}")
+    #     elif any(c in text for c in "&<>\'\""):
+    #         text = CDATA(text)
+    #
+    #     return text
 
     def parse_stylemap(self, node: NodeType) -> StyleMap:
         normal: Optional[Style] = None
@@ -121,11 +150,18 @@ class MyParser:
             match tag := child.tag:
                 # FIXME: Check for other elements in children (other than handled below).
                 case 'name':
-                    kwargs['name'] = child.text
+                    kwargs['name'] = Text(child.text)
                 case 'description':
-                    kwargs['description'] = child.text
+                    kwargs['description'] = Text(child.text)
+                    x = 1
                 case 'styleUrl':
-                    kwargs['stylemap'] = self.style_maps[child.text[1:]]
+                    style_id = child.text[1:]
+                    if 'labelson' in style_id:
+                        kwargs['style'] = self.styles[style_id]
+                        kwargs['stylemap'] = None
+                    else:
+                        kwargs['style'] = None
+                        kwargs['stylemap'] = self.style_maps[style_id]
                 case 'Point':
                     class_ = Point
                     kwargs['coordinates'] = parse_coordinates(child.find('coordinates'))
@@ -135,7 +171,7 @@ class MyParser:
                     kwargs['coordinates'] = parse_coordinates(child.find('coordinates'))
                 case 'ExtendedData':
                     kwargs['extended_data'] = ExtendedData(
-                        data=Data(gx_media_links=self.get_cdata_text(child.find('.//value').text)),
+                        data=Data(gx_media_links=Text(child.find('.//value').text)),
                     )
                     #         <ExtendedData>
                     #           <Data name="gx_media_links">
@@ -169,16 +205,17 @@ class MyParser:
                 case 'name':
                     pass
                 case 'description':
-                    document.description = self.get_cdata_text(child.text)
+                    document.description = Text(child.text)
                 case 'Style':
                     style = self.parse_style(child)
                     self.styles[style.id_] = style
+                    document.add_style(style)
                 case 'StyleMap':
                     stylemap = self.parse_stylemap(child)
                     self.style_maps[stylemap.id_] = stylemap
-                    document.style_maps.append(stylemap)
+                    document.add_stylemap(stylemap)
                 case 'Folder':
-                    document.folders.append(self.parse_folder(child))
+                    document.add_folder(self.parse_folder(child))
                 case _:
                     raise NotImplementedError(tag)
 
@@ -238,23 +275,36 @@ class MyParser:
 
         document_description = etree.SubElement(document_elem, 'description')
         if document.description:
-            document_description.text = self.get_cdata_text(document.description)
+            document_description.text = document.description.text or ""
 
         saved_styles: Set[str] = set()
         # FIXME: Avoid duplicates of Styles.
+        for id_ in document.styles_ordering:
+            if id_ in document.style_maps:
+                stylemap = document.style_maps[id_]
+                # style_elem = etree.SubElement(document_elem, 'Style')
+                # self.save_style(stylemap.normal, style_elem)
+                # style_elem = etree.SubElement(document_elem, 'Style')
+                # self.save_style(stylemap.highlight, style_elem)
+                stylemap_elem = etree.SubElement(document_elem, 'StyleMap')
+                self.save_stylemap(stylemap, stylemap_elem)
+            else:
+                style = document.styles[id_]
+                style_elem = etree.SubElement(document_elem, 'Style')
+                self.save_style(style, style_elem)
 
-        for stylemap in document.style_maps:
-            style_elem = etree.SubElement(document_elem, 'Style')
-            self.save_style(stylemap.normal, style_elem)
-            style_elem = etree.SubElement(document_elem, 'Style')
-            self.save_style(stylemap.highlight, style_elem)
-            stylemap_elem = etree.SubElement(document_elem, 'StyleMap')
-            self.save_stylemap(stylemap, stylemap_elem)
+        # for stylemap in document.style_maps:
+        #     style_elem = etree.SubElement(document_elem, 'Style')
+        #     self.save_style(stylemap.normal, style_elem)
+        #     style_elem = etree.SubElement(document_elem, 'Style')
+        #     self.save_style(stylemap.highlight, style_elem)
+        #     stylemap_elem = etree.SubElement(document_elem, 'StyleMap')
+        #     self.save_stylemap(stylemap, stylemap_elem)
 
-        for folder in document.folders:
-            self.save_folder(folder=folder, elem=document_elem, level=level + 1)
+        for folder_name in document.folders_ordering:
+            self.save_folder(folder=document.folders[folder_name], elem=document_elem, level=level + 1)
 
-        print(etree.tostring(kml, pretty_print=True))
+        # print(etree.tostring(kml, pretty_print=True))
 
         return kml
 
@@ -263,21 +313,23 @@ class MyParser:
         level += 1
 
         placemark_name = etree.SubElement(placemark_elem, 'name')
-        placemark_name.text = self.get_cdata_text(placemark.name)
+        placemark_name.text = placemark.name.text or ""
 
         if placemark.description:
+            # name = str(placemark.name.text)
             placemark_description = etree.SubElement(placemark_elem, 'description')
-            placemark_description.text = self.get_cdata_text(placemark.description)
+            placemark_description.text = placemark.description.text or ""
 
         placemark_styleurl = etree.SubElement(placemark_elem, 'styleUrl')
-        placemark_styleurl.text = "#" + placemark.stylemap.id_
+        placemark_styleurl.text = "#" + (placemark.stylemap.id_ if placemark.stylemap is not None
+                                         else placemark.style.id_)
 
         if (extData := placemark.extended_data) is not None:
             placemark_extdata = etree.SubElement(placemark_elem, 'ExtendedData')
             extdata_data = etree.SubElement(placemark_extdata, 'Data')
             extdata_data.attrib['name'] = 'gx_media_links'
             extdata_data_value = etree.SubElement(extdata_data, 'value')
-            extdata_data_value.text = extData.data.gx_media_links
+            extdata_data_value.text = extData.data.gx_media_links.text
 
         tag: str
         if isinstance(placemark, Point):
@@ -296,9 +348,12 @@ class MyParser:
         if any(isinstance(placemark, c) for c in [Point, Line]):
             coordinates_elem = etree.SubElement(placemark_class_elem, 'coordinates')
             level += 1
-            # FIXME: Prepend enough tabs.
+
+            def coord_as_str(coord: float) -> str:
+                return self.float_to_str(round(coord, MAX_COORDINATE_DIGITS))
+
             coordinates_elem.text = "\n" + "\n".join(
-                f"{self.INDENT * level}{self.float_to_str(c.x)},{self.float_to_str(c.y)},{self.float_to_str(c.z)}"
+                f"{self.INDENT * level}{coord_as_str(c.x)},{coord_as_str(c.y)},{coord_as_str(c.z)}"
                 for c in placemark.coordinates) + "\n" + self.INDENT * (level - 1)
 
     def save_folder(self, folder: Folder, elem: NodeType, level: int) -> None:
@@ -343,7 +398,7 @@ class MyParser:
         if style.balloon_style is not None:
             balloon_style = etree.SubElement(elem, 'BalloonStyle')
             balloon_style_text = etree.SubElement(balloon_style, 'text')
-            balloon_style_text.text = self.get_cdata_text(style.balloon_style.text)
+            balloon_style_text.text = style.balloon_style.text.text or ""
 
     def save_stylemap(self, stylemap: StyleMap, elem: NodeType) -> None:
         elem.set('id', stylemap.id_)

@@ -5,41 +5,20 @@ import logging
 import math
 import urllib.request
 import urllib.parse
+from dataclasses import dataclass
 from enum import StrEnum
 from pathlib import Path
 from random import randint
-from typing import Dict
+from typing import Dict, List
 
 import requests
 
+from genealogia.commons import compose_url, Region
 
 # FIXME: Parametry rpp1 i rpp2 w _GET (https://geneteka.genealodzy.pl/js/main.js?ver=1.71)
 
 #     sUrl = updateURL(sUrl, 'rpp1', page * length);
 #     sUrl = updateURL(sUrl, 'rpp2', length);
-
-class Region(StrEnum):
-    Dolnoslaskie = "dolnośląskie"
-    KujawskoPomorskie = "kujawsko-pomorskie"
-    Lubelskie = "lubelskie"
-    Lubuskie = "lubuskie"
-    Lodzkie = "łódzkie"
-    Malopolskie = "małopolskie"
-    Mazowieckie = "mazowieckie"
-    Warszawa = "Warszawa"
-    Opolskie = "opolskie"
-    Podkarpackie = "podkarpackie"
-    Podlaskie = "podlaskie"
-    Pomorskie = "pomorskie"
-    Slaskie = "śląskie"
-    Swietokrzyskie = "świętokrzyskie"
-    WarminskoMazurskie = "warmińsko-mazurskie"
-    Wielkopolskie = "wielkopolskie"
-    Zachodniopomorskie = "zachodniopomorskie"
-    Ukraina = "Ukraina"
-    Bialorus = "Białoruś"
-    Litwa = "Litwa"
-    POZOSTALE = "(pozostałe)"
 
 
 regions_encoding: Dict[Region, str] = {
@@ -89,7 +68,7 @@ root.setLevel(logging.DEBUG)
 sample_query_params = {
     'op': 'gt',
     'lang': 'pol',
-    'bdm': 'B',
+    # 'bdm': 'B',
     'w': regions_encoding[Region.Warszawa],
     'rid': 'B',
     'search_lastname': 'gadomski',
@@ -109,20 +88,23 @@ acts_url = "https://geneteka.genealodzy.pl/api/getAct.php"
 MAX_ENTRIES_PER_REQUEST = 50
 
 
-def query_births(common_params: Dict):
-    init_results = query_births_page(common_params)
+def query_acts(common_params: Dict, event_type: EventType):
+    this_common_params = copy.copy(common_params)
+    this_common_params['bdm'] = str(event_type)
+
+    init_results = query_acts_page(this_common_params)
     total_results = int(init_results['recordsTotal'])
 
     aggregated_data = init_results['data']
 
     for page_inx in range(1, int(math.ceil(total_results / MAX_ENTRIES_PER_REQUEST))):
-        subsequent_results = query_births_page(common_params, page_inx=page_inx)
+        subsequent_results = query_acts_page(this_common_params, page_inx=page_inx)
         aggregated_data.extend(subsequent_results['data'])
 
     return aggregated_data
 
 
-def query_births_page(common_params: Dict, page_inx: int = 0):
+def query_acts_page(common_params: Dict, page_inx: int = 0):
     """
     Query a single page with results (up to 50 entries).
     :param common_params:
@@ -168,17 +150,6 @@ def query_births_page(common_params: Dict, page_inx: int = 0):
 
     for k, v in this_common_params.items():
         params[k] = v
-
-    def compose_url(url: str, params: Dict) -> str:
-        def encode_brackets(s: str) -> str:
-            # FIXME: Maybe it is already performed automatically?
-            return s.replace('[', '%5B').replace(']', '%5D')
-
-        params_str = '&'.join(f"{encode_brackets(k)}={urllib.parse.quote(str(v).encode('utf-8'))}"
-                              for k, v in params.items())
-
-        url_with_params = f"{url}?{params_str}"
-        return url_with_params
 
     session = requests.Session()  # Connection: keep-alive (by default)
     session.head(geneteka_url)
@@ -242,7 +213,34 @@ def query_births_page(common_params: Dict, page_inx: int = 0):
 # init_results = query_births_page(sample_query_params, page_inx=1)
 
 # json_out = load_url()
-json_out = query_births(sample_query_params)
+
+json_out = query_acts(sample_query_params, event_type=EventType.Marriage)
+
+
+@dataclass
+class Marriage:
+    year: str
+    act_no: str
+    male_name: str
+    male_surname: str
+    male_parents: str
+    female_name: str
+    female_surname: str
+    female_parents: str
+    parish: str
+    remarks: str
+
+    @classmethod
+    def from_json_entry(cls, entry):
+        raise NotImplementedError
+
+
+def query_marriages() -> List[Marriage]:
+    json_out = query_acts(sample_query_params, event_type=EventType.Marriage)
+    return [Marriage.from_json_entry(entry) for entry in json_out]
+
+    raise NotImplementedError
+
 
 print(len(json_out))
 if json_out:

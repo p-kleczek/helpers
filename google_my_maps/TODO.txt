@@ -1,3 +1,12 @@
+# FIXME: Dlaczego nie łądują się zdjęcia??
+
+# TODO: Weryfikacja czy punkt ma odpowiednią ikonę (nie można scalać, dopóki są ostrzeżenia)
+# TODO: Weryfikacja czy punkt ma odpowiedni kolor (nie można scalać, dopóki są ostrzeżenia)
+# TODO: Zapis ostrzeżeń do pliku
+# TODO: Odpowiednie opisy tras w ramach dni podróży (żeby wiadomo było, do którego wyjazdu) -> jaki format?
+
+-----------------------
+
 Mapa "Warto zobaczyć"
 
 - ostrzeżenie, gdy obiekty zbyt blisko siebie
@@ -53,3 +62,12 @@ zob. <Style>
 
 https://lxml.de/api/lxml.etree.CDATA-class.html
 
+
+
+Znaczniki dla tras:
+[buty] - wycieczka piesza
+[rower] - wycieczka rowerowa
+[kolej] - przejazd pociągiem (np. retro)
+[auto] - wycieczka samochodowa
+
+#LK# - linia kolejowa

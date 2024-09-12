@@ -2,13 +2,31 @@ import unittest
 from pathlib import Path
 
 from lxml import etree
+from lxml.etree import CDATA
 
 from google_my_maps.my_parser import MyParser
 from google_my_maps.kml_types import Document, Style, IconStyle, Icon, LabelStyle, BalloonStyle, StyleMap, LineStyle, \
-    Folder, Point, Coordinate, Line
+    Folder, Point, Coordinate, Line, Text
+
+
+# class TextMatcher:
+#     expected: Text
+#
+#     def __init__(self, expected):
+#         self.expected = expected
+#
+#     def __eq__(self, other):
+#         return str(self.expected) == str(other)
 
 
 class TestStringMethods(unittest.TestCase):
+
+    def test_text(self):
+        self.assertEqual(Text(CDATA("<h3>$[name]</h3>")),
+                         Text(CDATA("<h3>$[name]</h3>")))
+
+        self.assertNotEqual(Text(CDATA("<h3>$[name]</h3>")),
+                            Text("text"))
 
     def test_parse_style(self):
         parser = MyParser()
@@ -25,11 +43,12 @@ class TestStringMethods(unittest.TestCase):
         <scale>0</scale>
       </LabelStyle>
       <BalloonStyle>
-        <text><![CDATA[txt]]></text>
+        <text>txt</text>
       </BalloonStyle>
     </Style>
         """
         node = etree.fromstring(xml)
+        # FIXME: Test when BalloonStyle/text contains e.g. <![CDATA[txt&]]>
 
         expected_output = Style(
             id_="ID",
@@ -44,7 +63,7 @@ class TestStringMethods(unittest.TestCase):
                 scale=0.0,
             ),
             balloon_style=BalloonStyle(
-                text="<![CDATA[txt]]>",
+                text=Text("txt"),
             )
         )
 
@@ -104,7 +123,8 @@ class TestStringMethods(unittest.TestCase):
         node = etree.fromstring(xml)
 
         expected_output = Point(
-            name="Point 1",
+            name=Text("Point 1"),
+            style=None,
             stylemap=stylemap1,
             coordinates=[
                 Coordinate(1, 2, 3)
@@ -137,7 +157,8 @@ class TestStringMethods(unittest.TestCase):
         node = etree.fromstring(xml)
 
         expected_output = Line(
-            name="Line 1",
+            name=Text("Line 1"),
+            style=None,
             stylemap=stylemap1,
             tessellate=True,
             coordinates=[
@@ -162,7 +183,7 @@ class TestStringMethods(unittest.TestCase):
                 scale=0.0,
             ),
             balloon_style=BalloonStyle(
-                text="<![CDATA[<h3>$[name]</h3>]]>",
+                text=Text(CDATA("<h3>$[name]</h3>")),
             )
         )
 
@@ -179,7 +200,7 @@ class TestStringMethods(unittest.TestCase):
                 scale=1.0,
             ),
             balloon_style=BalloonStyle(
-                text="<![CDATA[<h3>$[name]</h3>]]>",
+                text=Text(CDATA("<h3>$[name]</h3>")),
             ),
         )
 
@@ -196,7 +217,7 @@ class TestStringMethods(unittest.TestCase):
                 width=1.2,
             ),
             balloon_style=BalloonStyle(
-                text="<![CDATA[<h3>$[name]</h3>]]>",
+                text=Text(CDATA("<h3>$[name]</h3>")),
             ),
         )
 
@@ -207,7 +228,7 @@ class TestStringMethods(unittest.TestCase):
                 width=1.8,
             ),
             balloon_style=BalloonStyle(
-                text="<![CDATA[<h3>$[name]</h3>]]>",
+                text=Text(CDATA("<h3>$[name]</h3>")),
             ),
         )
 
@@ -219,26 +240,28 @@ class TestStringMethods(unittest.TestCase):
 
         expected_document = Document(
             name="Sample",
-            style_maps=[
-                styleMap1,
-                styleMap2,
-            ],
-            folders=[
-                Folder(
+            style_maps={
+                styleMap1.id_: styleMap1,
+                styleMap2.id_: styleMap2,
+            },
+            folders={
+                "Punkty": Folder(
                     name="Punkty",
                     placemarks=[
                         Point(
-                            name="Point 1",
+                            name=Text("Point 1"),
+                            style=None,
                             stylemap=styleMap1,
                             coordinates=[Coordinate(20.4067731, 52.6252736, 0)],
                         ),
                     ],
                 ),
-                Folder(
+                "Trasy": Folder(
                     name="Trasy",
                     placemarks=[
                         Line(
-                            name="Line 1",
+                            name=Text("Line 1"),
+                            style=None,
                             stylemap=styleMap2,
                             tessellate=True,
                             coordinates=[
@@ -249,16 +272,25 @@ class TestStringMethods(unittest.TestCase):
                         ),
                     ],
                 ),
-            ]
+            },
+            folders_ordering=["Punkty", "Trasy"],
+            styles_ordering=['icon-1502-9C27B0-nodesc-normal',
+                             'icon-1502-9C27B0-nodesc-highlight',
+                             'icon-1502-9C27B0-nodesc',
+                             'line-000000-1200-nodesc-normal',
+                             'line-000000-1200-nodesc-highlight',
+                             'line-000000-1200-nodesc'],
         )
 
         parser = MyParser()
         parsed_document = parser.parse_kml(Path("sample.kml"))
 
         self.assertEqual(expected_document.name, parsed_document.name)
+        self.assertEqual(expected_document.description, parsed_document.description)
         self.assertEqual(expected_document.style_maps, parsed_document.style_maps)
         self.assertEqual(expected_document.folders, parsed_document.folders)
-        self.assertEqual(expected_document, parsed_document)
+        self.assertEqual(expected_document.folders_ordering, parsed_document.folders_ordering)
+        self.assertEqual(expected_document.styles_ordering, parsed_document.styles_ordering)
 
 
 if __name__ == '__main__':

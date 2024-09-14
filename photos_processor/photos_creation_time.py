@@ -27,6 +27,7 @@ from PIL import Image
 #   sudo apt install libboost-python-dev
 # import pyexiv2
 
+# Installation:
 # pip install PyExifTool
 import exiftool
 

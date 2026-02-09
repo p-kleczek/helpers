@@ -17,7 +17,7 @@ from photos_processor.photos_creation_time import create_date_taken_prefix, get_
 make_copy: bool = True
 "If True, a (renamed) copy of a photo will be made."
 DEBUG_ON: bool = True
-do_rename: bool = False
+do_rename: bool = True
 "Should the rename be actually performed?"
 
 if __name__ == "__main__":
@@ -41,7 +41,7 @@ if __name__ == "__main__":
     # in_dir_path: Path = Path(r'/home/pawel/Pictures/Beskid Żywiecki 2023/Aneta_Rename/')
     # in_dir_path: Path = Path(r'/home/pawel/Pictures/Majówka 2024/')
 
-    in_dir_path: Path = Path(r'/home/pawel/Pictures/2024-06-15_30 - Włochy/AK/')
+    in_dir_path: Path = Path(r'/home/pawel/Pictures/_Zdjęcia - do Piwnicznej/Karkonosze/PK/')
 
     # ---
 

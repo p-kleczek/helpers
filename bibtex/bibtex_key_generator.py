@@ -1,17 +1,16 @@
+import os.path
 import re
 
 # ============================================================================
 
+input_filename = "bibtex_key.in"
 
-title_org = """
-rejestry poradlnego woj krakowskie
-""".strip()
 # ============================================================================
 
 def generate_bibtex_key(raw_key: str) -> str:
     title_new = raw_key.lower()
 
-    title_new = re.sub(r'[ \-\n]', '_', title_new)
+    title_new = re.sub(r'[ ~\-\n]', '_', title_new)
 
     replacement_tab = {
         # interpunkcja
@@ -55,5 +54,12 @@ def generate_bibtex_key(raw_key: str) -> str:
 
 
 if __name__ == '__main__':
+    if not os.path.isfile(input_filename):
+        open(input_filename, 'w').close()
+
+    title_org: str
+    with open(input_filename, 'r') as f:
+        title_org = '\n'.join(f.readlines()).strip()
+
     print()
     print(generate_bibtex_key(title_org))

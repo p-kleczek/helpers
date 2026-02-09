@@ -230,16 +230,17 @@ def click_download():
     pyautogui.click(download_button_coords.x + x_offset, download_button_coords.y)
 
 def move_downloaded_files(book_id: ArchiveBookId, repo_dir: Path):
-    try:
-        os.makedirs(repo_dir)
-    except OSError:
-        print(f"Error while creating directory: {repo_dir}")
-        exit(-1)
+    if not os.path.exists(repo_dir):
+        try:
+            os.makedirs(repo_dir)
+        except OSError:
+            print(f"Error while creating directory: {repo_dir}")
+            exit(-1)
 
     book_file_id = get_book_file_id(book_id)
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:
-            if book_file_id not in filename or not filename.endswith('.jpg'):
+            if f"{book_file_id}#" not in filename or not filename.endswith('.jpg'):
                 continue
             try:
                 shutil.move(download_dir / filename, repo_dir / filename)

@@ -51,7 +51,7 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
     #                             first_notes_page_inx=,
     #                             last_notes_page_inx=),
 
-    'AAdm 10': ArchiveBookData(url_id='5e5666414a1503583a3e1941',
+    'AAdm 10': ArchiveBookData(url_id='66414a15/f',
                                num_pages=0,
                                current_page_numbering=PageNumeringType.Foliation,
                                first_notes_page_inx=4,

@@ -16,11 +16,11 @@ import tkinter
 download_dir: Path = Path(r"C:\Users\pkleczek\Downloads")
 repo_root_dir: Path = Path(r"D:\! KleczekPawel\Mszana\AOff_AAdm")
 
-queue: List[ArchiveBookId] = ['AOff 169', 'AAdm 11']
-# queue: List[ArchiveBookId] = ['AOff 165', 'AOff 169',
-#                               'AAdm 10', 'AAdm 11', 'AAdm 12', 'AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
+# queue: List[ArchiveBookId] = ['AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
+queue: List[ArchiveBookId] = ['AOff 165', 'AOff 169',
+                              'AAdm 10', 'AAdm 11', 'AAdm 12', 'AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
 # FIXME: Verify:
-# 'AAdm 12', 'AOff 165', 'AOff 166','AOff 167', 'AOff 168',
+# 'AOff 166','AOff 167', 'AOff 168',
 
 @dataclass
 class Point:
@@ -30,37 +30,43 @@ class Point:
 
 Setup = str
 WindowsPlacement = str
+Browser = str
 
-address_bar_coords_repo: Dict[Setup, Dict[WindowsPlacement, Point]] = {
+address_bar_coords_repo: Dict[Setup, Dict[WindowsPlacement, Dict[Browser, Point]]] = {
     'priv-ak': {
         'side-by-side': Point(x=1250, y=90),
         # 'fullscreen':,
     },
     'work': {
         # 'side-by-side': Point(1250, 90),
-        'fullscreen': Point(x=210, y=65),
+        'fullscreen': {
+            'chrome': Point(x=210, y=65),
+            'firefox': Point(x=430, y=65),
+        }
     },
 }
 
-download_button_coords_repo: Dict[Setup, Dict[WindowsPlacement, Point]] = {
+download_button_coords_repo: Dict[Setup, Dict[WindowsPlacement, Dict[Browser, Point]]] = {
     'priv-ak': {
         'side-by-side': Point(x=1250, y=90),
         # 'fullscreen':,
     },
     'work': {
         # 'side-by-side': Point(1250, 90),
-        'fullscreen': Point(x=1390, y=355),
+        'fullscreen': {
+            'chrome': Point(x=1390, y=355),
+            'firefox': Point(x=1400, y=350),
+        }
     },
 }
 
 setup = 'work'
 windows_placement = 'fullscreen'
-address_bar_coords = address_bar_coords_repo[setup][windows_placement]
-download_button_coords = download_button_coords_repo[setup][windows_placement]
+browser = 'chrome'
+address_bar_coords = address_bar_coords_repo[setup][windows_placement][browser]
+download_button_coords = download_button_coords_repo[setup][windows_placement][browser]
 
-download_button_coords_full_view: Point = Point(1740, 135)
-download_button_coords_normal_view: Point = Point(1750, 340)
-page_loading_interval_secs: float = 10.0
+# Idle time between clicking "Download" button and proceeding to the next page.
 download_interval_secs: float = 1.0
 
 class AKMKColors:
@@ -86,8 +92,10 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             page_number += 1
         page_side = PageSide.v if page_side == PageSide.r else PageSide.r
 
-    # downloaded_pages_indexes: Set[int] = set()
-    #
+        if book_id == 'AAdm 13' and page_number == 11 and page_side == PageSide.v:
+            # NOTE: CAAK has incorrect numbering of pages for this book, after 11r goes 12v.
+            page_number = 12
+
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:
             if book_file_id not in filename or not filename.endswith('.jpg'):
@@ -122,6 +130,10 @@ def get_url_content() -> str:
     return clipboard_content
 
 def abort_if_not_on_akmk_webpage():
+    if browser != 'chrome':
+        print('Not implemented - missing coordinates')
+        return
+
     title_bar_background_color_sample_locations = [
         Point(x=190, y=220),
         Point(x=1000, y=300),
@@ -202,15 +214,16 @@ def reload_webpage():
 
 
 def wait_until_loaded():
-    sample_location = Point(x=950, y=960)
     initial_timeout_secs = 1.5
-
-    max_retries: int = 30
+    subsequent_timeout_secs = 0.5
+    max_waiting_time_secs = 30
 
     time.sleep(initial_timeout_secs)
     n_retries = 0
+    download_start = datetime.datetime.now()
     while True:
-        if n_retries > max_retries:
+        now = datetime.datetime.now()
+        if (download_start - now).seconds > max_waiting_time_secs:
             n_retries = 0
             reload_webpage()
             time.sleep(initial_timeout_secs)
@@ -220,6 +233,7 @@ def wait_until_loaded():
         # sampled_color = image.getpixel((sample_location.x, sample_location.y))
         # image.save("screenshot.png")
 
+        sample_location = Point(x=950, y=960)
         sampled_color = pyautogui.pixel(sample_location.x, sample_location.y)
 
         # if pyautogui.pixelMatchesColor(sample_location.x, sample_location.y, preview_background_color)
@@ -227,11 +241,23 @@ def wait_until_loaded():
             break
         print("Waiting for full preview...")
         n_retries += 1
-        time.sleep(1)
+        time.sleep(subsequent_timeout_secs)
 
 def is_download_list_opened():
-    download_list_background_color = (253, 251, 255)
-    sample_location = Point(x=1315, y=340)
+    if browser == 'chrome':
+        download_list_background_color = (253, 251, 255)
+    elif browser == 'firefox':
+        download_list_background_color = (255, 255, 255)
+    else:
+        raise NotImplemented
+
+    if browser == 'chrome':
+        sample_location = Point(x=1315, y=340)
+    elif browser == 'firefox':
+        sample_location = Point(x=1400, y=630)
+    else:
+        raise NotImplemented
+
     sampled_color = pyautogui.pixel(sample_location.x, sample_location.y)
     return sampled_color == download_list_background_color
 
@@ -287,10 +313,14 @@ if __name__ == "__main__":
             visit_webpage(caak_url)
             wait_until_loaded()
 
-            if is_download_list_opened():
-                # NONTE: If the list of downloaded file is visible, click in "safe area" to close it.
-                safe_point = Point(x=150, y=500)
-                pyautogui.click(safe_point.x, safe_point.y)
+            # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
+            safe_point = Point(x=150, y=500)
+            pyautogui.click(safe_point.x, safe_point.y)
+            time.sleep(0.2)
+            # if is_download_list_opened():
+            #     # NONTE: If the list of downloaded file is visible, click in "safe area" to close it.
+            #     safe_point = Point(x=150, y=500)
+            #     pyautogui.click(safe_point.x, safe_point.y)
             click_download()
             num_downloaded_pages += 1
 
@@ -299,3 +329,5 @@ if __name__ == "__main__":
             print(f"Downloaded at: {now} \t (avg. speed: {total_time / num_downloaded_pages:.1f} p./sec.)")
 
             time.sleep(download_interval_secs)
+
+    print("All downloads completed.")

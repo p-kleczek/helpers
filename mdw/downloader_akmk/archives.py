@@ -51,7 +51,61 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
     #                             first_notes_page_inx=,
     #                             last_notes_page_inx=),
 
-    'AAdm 10': ArchiveBookData(url_id='66414a15/f',
+    'AAdm 1': ArchiveBookData(url_id='5e42838133a040386152a9bb',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=617),
+
+    'AAdm 2': ArchiveBookData(url_id='5e3c241d445e795858225922',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=8,
+                                last_notes_page_inx=692),
+
+    'AAdm 3': ArchiveBookData(url_id='5e42a30cd3b9d61aece6cd64',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=636),
+
+    'AAdm 4': ArchiveBookData(url_id='5e43dfe55fbac11dd7389319',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=726),
+
+    'AAdm 5': ArchiveBookData(url_id='5e43ef3c1b28b362770dec86',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=679),
+
+    'AAdm 6': ArchiveBookData(url_id='5e4a5ea813e0af5864a7da2a',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=235),
+
+    'AAdm 7': ArchiveBookData(url_id='5e4a719f13e0af5864a7e2d5',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=294),
+
+    'AAdm 9': ArchiveBookData(url_id='5e564c6ae4b4d569f5565374',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=292),
+
+    'AAdm 9a': ArchiveBookData(url_id='5e5657dbf0c25e79af5dbeb1',
+                                num_pages=0,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=58),
+
+    'AAdm 10': ArchiveBookData(url_id='5e5666414a1503583a3e1941',
                                num_pages=0,
                                current_page_numbering=PageNumeringType.Foliation,
                                first_notes_page_inx=4,
@@ -64,13 +118,13 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                last_notes_page_inx=1153),
 
     'AAdm 12': ArchiveBookData(url_id='5ea14e2e60d3281d8c66973b',
-                               num_pages=0,
+                               num_pages=1538,
                                current_page_numbering=PageNumeringType.Foliation,
                                first_notes_page_inx=4,
                                last_notes_page_inx=1530),
 
     'AAdm 13': ArchiveBookData(url_id='5ea16bfd7346f71db9d74b48',
-                               num_pages=0,
+                               num_pages=970,
                                current_page_numbering=PageNumeringType.Foliation,
                                first_notes_page_inx=4,
                                last_notes_page_inx=966),
@@ -92,7 +146,4 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                current_page_numbering=PageNumeringType.Pagination,
                                first_notes_page_inx=4,
                                last_notes_page_inx=763),
-
-    # 'AAdm 12': ArchiveBookData(url_id='5ea14e2e60d3281d8c66973b', num_pages=1538),
-    # 'AAdm 13': ArchiveBookData(url_id='5ea16bfd7346f71db9d74b48', num_pages=970),
 }

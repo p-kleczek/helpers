@@ -1,70 +1,44 @@
+import argparse
 import datetime
 import os
 import shutil
 import time
-from dataclasses import dataclass
-from pathlib import Path
-from typing import Dict, List, Set
+from typing import Set
 
 from archives import *
+from environment_settings import *
 
 import _tkinter
 import pyautogui
 import tkinter
 
-# FIXME: These settings are OS-dependent!
-download_dir: Path = Path(r"C:\Users\pkleczek\Downloads")
-repo_root_dir: Path = Path(r"D:\! KleczekPawel\Mszana\AOff_AAdm")
+from mdw.downloader_akmk.environment_settings import repo_root_dir_repo
+
+queue = list(archive_books.keys())
 
 # queue: List[ArchiveBookId] = ['AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
-queue: List[ArchiveBookId] = ['AOff 165', 'AOff 169',
-                              'AAdm 10', 'AAdm 11', 'AAdm 12', 'AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
+# queue: List[ArchiveBookId] = ['AOff 165', 'AOff 169',
+#                               'AAdm 10', 'AAdm 11', 'AAdm 12', 'AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
 # FIXME: Verify:
 # 'AOff 166','AOff 167', 'AOff 168',
 
-@dataclass
-class Point:
-    x: int
-    y: int
+parser = argparse.ArgumentParser(prog='CAAK Downloader')
+parser.add_argument('setup')
+parser.add_argument('windows_placement')
+parser.add_argument('browser')
+parser.add_argument('--queue')
+args = parser.parse_args()
 
+setup = args.setup
+windows_placement = args.windows_placement
+browser = args.browser
+queue = args.queue.split(';') if args.queue else list(archive_books.keys())
 
-Setup = str
-WindowsPlacement = str
-Browser = str
-
-address_bar_coords_repo: Dict[Setup, Dict[WindowsPlacement, Dict[Browser, Point]]] = {
-    'priv-ak': {
-        'side-by-side': Point(x=1250, y=90),
-        # 'fullscreen':,
-    },
-    'work': {
-        # 'side-by-side': Point(1250, 90),
-        'fullscreen': {
-            'chrome': Point(x=210, y=65),
-            'firefox': Point(x=430, y=65),
-        }
-    },
-}
-
-download_button_coords_repo: Dict[Setup, Dict[WindowsPlacement, Dict[Browser, Point]]] = {
-    'priv-ak': {
-        'side-by-side': Point(x=1250, y=90),
-        # 'fullscreen':,
-    },
-    'work': {
-        # 'side-by-side': Point(1250, 90),
-        'fullscreen': {
-            'chrome': Point(x=1390, y=355),
-            'firefox': Point(x=1400, y=350),
-        }
-    },
-}
-
-setup = 'work'
-windows_placement = 'fullscreen'
-browser = 'chrome'
 address_bar_coords = address_bar_coords_repo[setup][windows_placement][browser]
 download_button_coords = download_button_coords_repo[setup][windows_placement][browser]
+download_dir = download_dir_repo[setup]
+repo_root_dir = repo_root_dir_repo[setup]
+x_offset = 1980 if setup == 'priv-pk' else 0
 
 # Idle time between clicking "Download" button and proceeding to the next page.
 download_interval_secs: float = 1.0
@@ -114,7 +88,7 @@ def build_caak_url(page_no: int) -> str:
 
 
 def get_url_content() -> str:
-    pyautogui.moveTo(address_bar_coords.x, address_bar_coords.y)
+    pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
     pyautogui.click(clicks=2)
     pyautogui.hotkey('ctrl', 'a')
     pyautogui.hotkey('ctrl', 'c')
@@ -134,6 +108,7 @@ def abort_if_not_on_akmk_webpage():
         print('Not implemented - missing coordinates')
         return
 
+    # FIXME: Set proper coordinates also for Firefox.
     title_bar_background_color_sample_locations = [
         Point(x=190, y=220),
         Point(x=1000, y=300),
@@ -141,11 +116,12 @@ def abort_if_not_on_akmk_webpage():
     ]
 
     for point in title_bar_background_color_sample_locations:
-        sampled_color = pyautogui.pixel(point.x, point.y)
+        sampled_color = pyautogui.pixel(point.x + x_offset, point.y)
         if sampled_color != AKMKColors.title_bar_background:
             print("Likely not on AKMK website.")
             exit(1)
 
+    # FIXME: Set proper coordinates also for Firefox.
     preview_background_sample_locations = [
         Point(x=650, y=450),
         Point(x=1250, y=450),
@@ -154,7 +130,7 @@ def abort_if_not_on_akmk_webpage():
     ]
 
     for point in preview_background_sample_locations:
-        sampled_color = pyautogui.pixel(point.x, point.y)
+        sampled_color = pyautogui.pixel(point.x + x_offset, point.y)
         if sampled_color != AKMKColors.preview_background:
             print("Likely not on AKMK website.")
             exit(1)
@@ -173,7 +149,7 @@ def put_url_to_clipboard(url: str):
             time.sleep(1)
 
 def paste_url_from_clipboard():
-    pyautogui.moveTo(address_bar_coords.x, address_bar_coords.y)
+    pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
     pyautogui.click(clicks=2)
     pyautogui.hotkey('ctrl', 'a')
     pyautogui.hotkey('ctrl', 'v')
@@ -183,7 +159,7 @@ def visit_webpage(url: str):
 
     while True:
         # NOTE: New way of inserting the address (needs to be refined).
-        # pyautogui.moveTo(address_bar_coords.x, address_bar_coords.y)
+        # pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
         # pyautogui.click(clicks=2)
         # pyautogui.hotkey('ctrl', 'a')
         # abort_if_not_on_akmk_webpage()
@@ -191,7 +167,7 @@ def visit_webpage(url: str):
         # paste_url_from_clipboard()
 
         # NOTE: Old way of inserting the address.
-        pyautogui.moveTo(address_bar_coords.x, address_bar_coords.y)
+        pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
         pyautogui.click(clicks=2)
         pyautogui.hotkey('ctrl', 'a')
         # abort_if_not_on_akmk_webpage()
@@ -230,13 +206,14 @@ def wait_until_loaded():
         # DEBUG: Take a screenshot.
         # from PIL import ImageGrab
         # image = ImageGrab.grab()
-        # sampled_color = image.getpixel((sample_location.x, sample_location.y))
+        # sampled_color = image.getpixel((sample_location.x + x_offset, sample_location.y))
         # image.save("screenshot.png")
 
+        # FIXME: Set proper coordinates also for Firefox.
         sample_location = Point(x=950, y=960)
-        sampled_color = pyautogui.pixel(sample_location.x, sample_location.y)
+        sampled_color = pyautogui.pixel(sample_location.x + x_offset, sample_location.y)
 
-        # if pyautogui.pixelMatchesColor(sample_location.x, sample_location.y, preview_background_color)
+        # if pyautogui.pixelMatchesColor(sample_location.x + x_offset, sample_location.y, preview_background_color)
         if sampled_color != AKMKColors.preview_background:
             break
         print("Waiting for full preview...")
@@ -244,27 +221,21 @@ def wait_until_loaded():
         time.sleep(subsequent_timeout_secs)
 
 def is_download_list_opened():
-    if browser == 'chrome':
-        download_list_background_color = (253, 251, 255)
-    elif browser == 'firefox':
-        download_list_background_color = (255, 255, 255)
-    else:
-        raise NotImplemented
-
-    if browser == 'chrome':
-        sample_location = Point(x=1315, y=340)
-    elif browser == 'firefox':
-        sample_location = Point(x=1400, y=630)
-    else:
-        raise NotImplemented
-
-    sampled_color = pyautogui.pixel(sample_location.x, sample_location.y)
+    download_list_background_color = download_list_background_color_repo[browser]
+    sample_location = download_list_sample_location_repo[browser]
+    sampled_color = pyautogui.pixel(sample_location.x + x_offset, sample_location.y)
     return sampled_color == download_list_background_color
 
 def click_download():
-    pyautogui.click(download_button_coords.x, download_button_coords.y)
+    pyautogui.click(download_button_coords.x + x_offset, download_button_coords.y)
 
 def move_downloaded_files(book_id: ArchiveBookId, repo_dir: Path):
+    try:
+        os.makedirs(repo_dir)
+    except OSError:
+        print(f"Error while creating directory: {repo_dir}")
+        exit(-1)
+
     book_file_id = get_book_file_id(book_id)
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:
@@ -314,13 +285,13 @@ if __name__ == "__main__":
             wait_until_loaded()
 
             # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
-            safe_point = Point(x=150, y=500)
-            pyautogui.click(safe_point.x, safe_point.y)
+            safe_point = safe_point_location_repo[browser]
+            pyautogui.click(safe_point.x + x_offset, safe_point.y)
             time.sleep(0.2)
             # if is_download_list_opened():
             #     # NONTE: If the list of downloaded file is visible, click in "safe area" to close it.
             #     safe_point = Point(x=150, y=500)
-            #     pyautogui.click(safe_point.x, safe_point.y)
+            #     pyautogui.click(safe_point.x + x_offset, safe_point.y)
             click_download()
             num_downloaded_pages += 1
 

@@ -40,8 +40,15 @@ download_dir = download_dir_repo[setup]
 repo_root_dir = repo_root_dir_repo[setup]
 x_offset = 1980 if setup == 'priv-pk' else 0
 
-# Idle time between clicking "Download" button and proceeding to the next page.
 download_interval_secs: float = 1.0
+"""Idle time between clicking "Download" button and proceeding to the next page."""
+url_clipboard_retry_interval_secs: float = 1.0
+"""Idle time before subsequent attempt to access clipboard."""
+safe_point_click_timeout: float = 0.2
+timeout_download_initial_secs: float = 1.5
+timeout_download_subsequent_secs: float = 0.5
+max_waiting_time_secs: float = 30
+get_pixel_error_timeout: float = 5.0
 
 class AKMKColors:
     preview_background = (89, 89, 89)
@@ -86,6 +93,13 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
 def build_caak_url(page_no: int) -> str:
     return f"https://caak.upjp2.edu.pl/j/{archival_entry.url_id}/s/{page_no - 1}/f"
 
+def get_pixel(x: int, y: int):
+    while True:
+        try:
+            return pyautogui.pixel(x, y)
+        except WindowsError as e:
+            print(f"Error: {e}")
+        time.sleep(get_pixel_error_timeout)
 
 def get_url_content() -> str:
     pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
@@ -100,7 +114,7 @@ def get_url_content() -> str:
             clipboard_content = tkinter.Tk().clipboard_get()
             break
         except _tkinter.TclError:
-            time.sleep(1)
+            time.sleep(url_clipboard_retry_interval_secs)
     return clipboard_content
 
 def abort_if_not_on_akmk_webpage():
@@ -116,7 +130,7 @@ def abort_if_not_on_akmk_webpage():
     ]
 
     for point in title_bar_background_color_sample_locations:
-        sampled_color = pyautogui.pixel(point.x + x_offset, point.y)
+        sampled_color = get_pixel(point.x + x_offset, point.y)
         if sampled_color != AKMKColors.title_bar_background:
             print("Likely not on AKMK website.")
             exit(1)
@@ -130,7 +144,7 @@ def abort_if_not_on_akmk_webpage():
     ]
 
     for point in preview_background_sample_locations:
-        sampled_color = pyautogui.pixel(point.x + x_offset, point.y)
+        sampled_color = get_pixel(point.x + x_offset, point.y)
         if sampled_color != AKMKColors.preview_background:
             print("Likely not on AKMK website.")
             exit(1)
@@ -146,7 +160,7 @@ def put_url_to_clipboard(url: str):
             r.destroy()
             break
         except _tkinter.TclError:
-            time.sleep(1)
+            time.sleep(url_clipboard_retry_interval_secs)
 
 def paste_url_from_clipboard():
     pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
@@ -186,23 +200,21 @@ def visit_webpage(url: str):
 
 
 def reload_webpage():
+    print('Reloading...')
     pyautogui.hotkey('ctrl', 'f5')
 
-
 def wait_until_loaded():
-    initial_timeout_secs = 1.5
-    subsequent_timeout_secs = 0.5
-    max_waiting_time_secs = 30
 
-    time.sleep(initial_timeout_secs)
+    time.sleep(timeout_download_initial_secs)
     n_retries = 0
     download_start = datetime.datetime.now()
     while True:
         now = datetime.datetime.now()
-        if (download_start - now).seconds > max_waiting_time_secs:
+        if (now - download_start).seconds > max_waiting_time_secs:
             n_retries = 0
             reload_webpage()
-            time.sleep(initial_timeout_secs)
+            time.sleep(timeout_download_initial_secs)
+            download_start = now
         # DEBUG: Take a screenshot.
         # from PIL import ImageGrab
         # image = ImageGrab.grab()
@@ -211,19 +223,19 @@ def wait_until_loaded():
 
         # FIXME: Set proper coordinates also for Firefox.
         sample_location = Point(x=950, y=960)
-        sampled_color = pyautogui.pixel(sample_location.x + x_offset, sample_location.y)
+        sampled_color = get_pixel(sample_location.x + x_offset, sample_location.y)
 
         # if pyautogui.pixelMatchesColor(sample_location.x + x_offset, sample_location.y, preview_background_color)
         if sampled_color != AKMKColors.preview_background:
             break
         print("Waiting for full preview...")
         n_retries += 1
-        time.sleep(subsequent_timeout_secs)
+        time.sleep(timeout_download_subsequent_secs)
 
 def is_download_list_opened():
     download_list_background_color = download_list_background_color_repo[browser]
     sample_location = download_list_sample_location_repo[browser]
-    sampled_color = pyautogui.pixel(sample_location.x + x_offset, sample_location.y)
+    sampled_color = get_pixel(sample_location.x + x_offset, sample_location.y)
     return sampled_color == download_list_background_color
 
 def click_download():
@@ -288,7 +300,8 @@ if __name__ == "__main__":
             # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
             safe_point = safe_point_location_repo[browser]
             pyautogui.click(safe_point.x + x_offset, safe_point.y)
-            time.sleep(0.2)
+
+            time.sleep(safe_point_click_timeout)
             # if is_download_list_opened():
             #     # NONTE: If the list of downloaded file is visible, click in "safe area" to close it.
             #     safe_point = Point(x=150, y=500)

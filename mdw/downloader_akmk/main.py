@@ -40,8 +40,10 @@ download_dir = download_dir_repo[setup]
 repo_root_dir = repo_root_dir_repo[setup]
 x_offset = 1980 if setup == 'priv-pk' else 0
 
-download_interval_secs: float = 1.0
+download_interval_secs: float = 10.0 if browser == 'chrome' else 10.0
+download_safeguard_interval_secs: float = 1.0
 """Idle time between clicking "Download" button and proceeding to the next page."""
+
 url_clipboard_retry_interval_secs: float = 1.0
 """Idle time before subsequent attempt to access clipboard."""
 safe_point_click_timeout: float = 0.2
@@ -49,6 +51,7 @@ timeout_download_initial_secs: float = 1.5
 timeout_download_subsequent_secs: float = 0.5
 max_waiting_time_secs: float = 30
 get_pixel_error_timeout: float = 5.0
+num_downloads_before_reload: int = 50
 
 class AKMKColors:
     preview_background = (89, 89, 89)
@@ -67,7 +70,9 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
     page_side: PageSide = PageSide.r
     book: ArchiveBookData = archive_books[book_id]
     for page_index in range(book.first_notes_page_inx, book.last_notes_page_inx + 1):
-        page_id = f"AKMKr_{book_file_id}#{page_number:04d}_{page_side}"
+        page_id_prefix = "" if book_id == 'AAdm 2' else "AKMKr_"
+        page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
+
         expected_pages[page_id] = page_index
         if book.current_page_numbering == PageNumeringType.Pagination or page_side == PageSide.v:
             page_number += 1
@@ -182,8 +187,11 @@ def visit_webpage(url: str):
 
         # NOTE: Old way of inserting the address.
         pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
-        pyautogui.click(clicks=2)
-        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.click(clicks=3)
+        # OLD version
+        # pyautogui.click(clicks=2)
+        # pyautogui.hotkey('ctrl', 'a')
+        #
         # abort_if_not_on_akmk_webpage()
         # pyautogui.press('del')
         # abort_if_not_on_akmk_webpage()
@@ -204,10 +212,12 @@ def reload_webpage():
     pyautogui.hotkey('ctrl', 'f5')
 
 def wait_until_loaded():
+    waiting_marker: str = '.'
 
     time.sleep(timeout_download_initial_secs)
     n_retries = 0
     download_start = datetime.datetime.now()
+    print(f"Waiting for full preview {waiting_marker}", end='')
     while True:
         now = datetime.datetime.now()
         if (now - download_start).seconds > max_waiting_time_secs:
@@ -228,9 +238,10 @@ def wait_until_loaded():
         # if pyautogui.pixelMatchesColor(sample_location.x + x_offset, sample_location.y, preview_background_color)
         if sampled_color != AKMKColors.preview_background:
             break
-        print("Waiting for full preview...")
+        print(waiting_marker, end='')
         n_retries += 1
         time.sleep(timeout_download_subsequent_secs)
+    print()
 
 def is_download_list_opened():
     download_list_background_color = download_list_background_color_repo[browser]
@@ -295,6 +306,8 @@ if __name__ == "__main__":
             # time.sleep(1)
 
             visit_webpage(caak_url)
+            start_processing_page_time = datetime.datetime.now()
+
             wait_until_loaded()
 
             # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
@@ -311,8 +324,18 @@ if __name__ == "__main__":
 
             now = datetime.datetime.now()
             total_time = (now - start_time).seconds
-            print(f"Downloaded at: {now} \t (avg. speed: {total_time / num_downloaded_pages:.1f} p./sec.)")
+            print(f"Downloaded at: {now} \t (avg. speed: {total_time / num_downloaded_pages:.1f} sec./page)")
 
-            time.sleep(download_interval_secs)
+            elapsed_time = now - start_processing_page_time
+            if elapsed_time.seconds < download_interval_secs:
+                waiting_time = download_interval_secs - int(elapsed_time.seconds)
+                print(f"The process took too little time - waiting {waiting_time} seconds more.")
+                time.sleep(waiting_time)
+
+            time.sleep(download_safeguard_interval_secs)
+
+            if num_downloaded_pages % num_downloads_before_reload == 0:
+                print("Preventive reload...")
+                reload_webpage()
 
     print("All downloads completed.")

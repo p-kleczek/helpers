@@ -59,6 +59,31 @@ download_button_coords_repo: Dict[Setup, Dict[WindowsPlacement, Dict[Browser, Po
     },
 }
 
+# In PyCharm IDE.
+restart_app_button_coords_repo: Dict[Setup, Dict[WindowsPlacement, Point]] = {
+    'priv-pk': {
+        # 'fullscreen': None,
+    },
+    'priv-ak': {
+        # 'side-by-side': None,
+    },
+    'work': {
+        # 'side-by-side': Point(1250, 90),
+        'fullscreen': Point(1335, 20),
+    },
+}
+stop_and_rerun_app_button_coords_repo: Dict[Setup, Dict[WindowsPlacement, Point]] = {
+    'priv-pk': {
+        # 'fullscreen': None,
+    },
+    'priv-ak': {
+        # 'side-by-side': None,
+    },
+    'work': {
+        # 'side-by-side': Point(1250, 90),
+        'fullscreen': Point(955, 570),
+    },
+}
 download_list_background_color_repo: Dict[Browser, ColorType] = {
     'chrome': (253, 251, 255),
     'firefox': (255, 255, 255),

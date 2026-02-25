@@ -1,6 +1,7 @@
 import argparse
 import datetime
 import os
+import re
 import shutil
 import time
 from typing import Set
@@ -16,12 +17,6 @@ from mdw.downloader_akmk.environment_settings import repo_root_dir_repo
 
 queue = list(archive_books.keys())
 
-# queue: List[ArchiveBookId] = ['AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
-# queue: List[ArchiveBookId] = ['AOff 165', 'AOff 169',
-#                               'AAdm 10', 'AAdm 11', 'AAdm 12', 'AAdm 13', 'AAdm 14', 'AAdm 15', 'AAdm 22']
-# FIXME: Verify:
-# 'AOff 166','AOff 167', 'AOff 168',
-
 parser = argparse.ArgumentParser(prog='CAAK Downloader')
 parser.add_argument('setup')
 parser.add_argument('windows_placement')
@@ -36,9 +31,12 @@ queue = args.queue.split(';') if args.queue else list(archive_books.keys())
 
 address_bar_coords = address_bar_coords_repo[setup][windows_placement][browser]
 download_button_coords = download_button_coords_repo[setup][windows_placement][browser]
+restart_app_button_coords = restart_app_button_coords_repo[setup][windows_placement]
+stop_and_rerun_app_button_coords = stop_and_rerun_app_button_coords_repo[setup][windows_placement]
 download_dir = download_dir_repo[setup]
 repo_root_dir = repo_root_dir_repo[setup]
-x_offset = 1980 if setup == 'priv-pk' else 0
+left_monitor_width_px = 1920 if setup in ['priv-pk', 'work'] else 0
+x_offset = 1920 if setup == 'priv-pk' else 0  # Represents another offset to the right screen.
 
 download_interval_secs: float = 10.0 if browser == 'chrome' else 10.0
 download_safeguard_interval_secs: float = 1.0
@@ -78,6 +76,14 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             page_number += 1
         page_side = PageSide.v if page_side == PageSide.r else PageSide.r
 
+        if book_id == 'AAdm 9':
+            if page_number == 35 and page_side == PageSide.r:
+                # NOTE: CAAK has incorrect numbering of pages for this book, after 34v goes 35v.
+                page_side = PageSide.v
+            if page_index == 108:
+                # NOTE: CAAK has incorrect numbering of pages for this book, k. 53r is scanned two times (#107 and #108).
+                page_number = 53
+                page_side = PageSide.v
         if book_id == 'AAdm 13' and page_number == 11 and page_side == PageSide.v:
             # NOTE: CAAK has incorrect numbering of pages for this book, after 11r goes 12v.
             page_number = 12
@@ -98,12 +104,23 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
 def build_caak_url(page_no: int) -> str:
     return f"https://caak.upjp2.edu.pl/j/{archival_entry.url_id}/s/{page_no - 1}/f"
 
+def restart_app():
+    x_offset = -left_monitor_width_px if setup == 'work' else 0
+    pyautogui.moveTo(restart_app_button_coords.x + x_offset, restart_app_button_coords.y)
+    pyautogui.click()
+    time.sleep(1)
+    pyautogui.moveTo(stop_and_rerun_app_button_coords.x + x_offset, stop_and_rerun_app_button_coords.y)
+    pyautogui.click()
+
+
 def get_pixel(x: int, y: int):
     while True:
         try:
             return pyautogui.pixel(x, y)
         except WindowsError as e:
             print(f"Error: {e}")
+            print("Restarting the app...")
+            restart_app()
         time.sleep(get_pixel_error_timeout)
 
 def get_url_content() -> str:
@@ -122,7 +139,7 @@ def get_url_content() -> str:
             time.sleep(url_clipboard_retry_interval_secs)
     return clipboard_content
 
-def abort_if_not_on_akmk_webpage():
+def abort_if_not_on_caak_webpage():
     if browser != 'chrome':
         print('Not implemented - missing coordinates')
         return
@@ -181,7 +198,7 @@ def visit_webpage(url: str):
         # pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
         # pyautogui.click(clicks=2)
         # pyautogui.hotkey('ctrl', 'a')
-        # abort_if_not_on_akmk_webpage()
+        # abort_if_not_on_caak_webpage()
         # put_url_to_clipboard(url)
         # paste_url_from_clipboard()
 
@@ -192,9 +209,9 @@ def visit_webpage(url: str):
         # pyautogui.click(clicks=2)
         # pyautogui.hotkey('ctrl', 'a')
         #
-        # abort_if_not_on_akmk_webpage()
+        # abort_if_not_on_caak_webpage()
         # pyautogui.press('del')
-        # abort_if_not_on_akmk_webpage()
+        # abort_if_not_on_caak_webpage()
         pyautogui.write(url, interval=0.025)
 
         url_content = get_url_content()
@@ -266,7 +283,11 @@ def move_downloaded_files(book_id: ArchiveBookId, repo_dir: Path):
             if f"{book_file_id}#" not in filename or not filename.endswith('.jpg'):
                 continue
             try:
-                shutil.move(download_dir / filename, repo_dir / filename)
+                # NOTE: Some files on AKMK server has incorrect suffixes (e.g. 'xxx 1.jpg' instead of 'xxx.jpg').
+                # NOTE: Some files could be downloaded multiple times, hence Windows appends ' (N)' to the filename.
+                new_filename = re.sub(r'(( \(\d\))|( 1))(?=\.jpg)', '', filename)
+
+                shutil.move(download_dir / filename, repo_dir / new_filename)
             except Exception as e:
                 print(f"Error while moving file {book_id}/{filename}: {e}")
         break  # Do not visit directories recursively.
@@ -338,4 +359,5 @@ if __name__ == "__main__":
                 print("Preventive reload...")
                 reload_webpage()
 
+    print("------------------------")
     print("All downloads completed.")

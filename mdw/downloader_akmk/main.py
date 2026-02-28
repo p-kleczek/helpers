@@ -38,14 +38,13 @@ repo_root_dir = repo_root_dir_repo[setup]
 left_monitor_width_px = 1920 if setup in ['priv-pk', 'work'] else 0
 x_offset = 1920 if setup == 'priv-pk' else 0  # Represents another offset to the right screen.
 
-download_interval_secs: float = 8.0 if browser == 'chrome' else 10.0
+download_interval_secs: float = 6.0 if browser == 'chrome' else 10.0
 download_safeguard_interval_secs: float = 1.0
 """Idle time between clicking "Download" button and proceeding to the next page."""
 
 url_clipboard_retry_interval_secs: float = 1.0
 """Idle time before subsequent attempt to access clipboard."""
 safe_point_click_timeout: float = 0.2
-timeout_download_initial_secs: float = 1.5
 timeout_download_button_click_secs: float = 5.0
 timeout_download_subsequent_secs: float = 0.5
 max_waiting_time_secs: float = 30
@@ -246,16 +245,17 @@ def reload_webpage():
 def wait_until_loaded():
     waiting_marker: str = '.'
 
-    time.sleep(timeout_download_initial_secs)
     n_retries = 0
     download_start = datetime.datetime.now()
-    print(f"Waiting for full preview {waiting_marker}", end='')
+    print(f"Waiting for full preview ", end='')
     while True:
+        print(waiting_marker, end='')
+        time.sleep(timeout_download_subsequent_secs)
+
         now = datetime.datetime.now()
         if (now - download_start).seconds > max_waiting_time_secs:
             n_retries = 0
             reload_webpage()
-            time.sleep(timeout_download_initial_secs)
             download_start = now
         # DEBUG: Take a screenshot.
         # from PIL import ImageGrab
@@ -263,16 +263,27 @@ def wait_until_loaded():
         # sampled_color = image.getpixel((sample_location.x + x_offset, sample_location.y))
         # image.save("screenshot.png")
 
-        # FIXME: Set proper coordinates also for Firefox.
-        sample_location = Point(x=950, y=960)
-        sampled_color = get_pixel(sample_location.x + x_offset, sample_location.y)
-
-        # if pyautogui.pixelMatchesColor(sample_location.x + x_offset, sample_location.y, preview_background_color)
-        if sampled_color != AKMKColors.preview_background:
+        is_loaded: bool = True
+        # NOTE: Sometimes the preview is loaded in top-to-bottom fashion, sometimes in bottom-to-top fashion.
+        # FIXME: These coordinates are for Chrome in fullscreen mode.
+        left: int = 830
+        right: int = 1150
+        top: int = 400
+        bottom: int = 960
+        sample_locations = [
+            Point(x=left, y=top),
+            Point(x=right, y=top),
+            Point(x=left, y=bottom),
+            Point(x=right, y=bottom),
+        ]
+        for sample_location in sample_locations:
+            sampled_color = get_pixel(sample_location.x + x_offset, sample_location.y)
+            if sampled_color == AKMKColors.preview_background:
+                is_loaded = False
+                break
+        if is_loaded:
             break
-        print(waiting_marker, end='')
         n_retries += 1
-        time.sleep(timeout_download_subsequent_secs)
     print()
 
 

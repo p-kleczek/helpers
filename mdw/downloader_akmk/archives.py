@@ -31,8 +31,45 @@ class ArchiveBookData:
     last_notes_page_inx: PageIndex
     "Index of the last page with notes (i.e., actual archival content)."
 
-
+    # 'AOff NNN': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             last_notes_page_inx=INX),
 archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
+    'AOff 123': ArchiveBookData(url_id='5f43e8b2b593ba085fead762',
+                                num_pages=1624,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1619),
+
+    'AOff 124': ArchiveBookData(url_id='5f43e780f8838408962ff1a9',
+                                num_pages=1596,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1593),
+
+    'AOff 125': ArchiveBookData(url_id='5f1ca8e3ad85ed0855298bc7',
+                                num_pages=460,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=454),
+
+    'AOff 126': ArchiveBookData(url_id='5f3ea7464d06ac088a8aae3b',
+                                num_pages=1514,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1511),
+
+    # TODO: Other AOff ...
+
+    'AOff 158': ArchiveBookData(url_id='5f1a6ef4ceca5f09285c6658',
+                                num_pages=576,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=10,
+                                last_notes_page_inx=572),
+    # TODO: AOff 159-164
+
     'AOff 165': ArchiveBookData(url_id='5ffc1f73301dd32857d16f82',
                                 num_pages=1522,
                                 current_page_numbering=PageNumeringType.Foliation,

@@ -38,7 +38,7 @@ repo_root_dir = repo_root_dir_repo[setup]
 left_monitor_width_px = 1920 if setup in ['priv-pk', 'work'] else 0
 x_offset = 1920 if setup == 'priv-pk' else 0  # Represents another offset to the right screen.
 
-download_interval_secs: float = 10.0 if browser == 'chrome' else 10.0
+download_interval_secs: float = 8.0 if browser == 'chrome' else 10.0
 download_safeguard_interval_secs: float = 1.0
 """Idle time between clicking "Download" button and proceeding to the next page."""
 
@@ -46,10 +46,12 @@ url_clipboard_retry_interval_secs: float = 1.0
 """Idle time before subsequent attempt to access clipboard."""
 safe_point_click_timeout: float = 0.2
 timeout_download_initial_secs: float = 1.5
+timeout_download_button_click_secs: float = 5.0
 timeout_download_subsequent_secs: float = 0.5
 max_waiting_time_secs: float = 30
 get_pixel_error_timeout: float = 5.0
 num_downloads_before_reload: int = 50
+
 
 class AKMKColors:
     preview_background = (89, 89, 89)
@@ -78,15 +80,20 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
 
         if book_id == 'AAdm 9':
             if page_number == 35 and page_side == PageSide.r:
-                # NOTE: CAAK has incorrect numbering of pages for this book, after 34v goes 35v.
+                # NOTE: CAAK has incorrect numbering of pages for this book, after f. 34v goes f. 35v.
                 page_side = PageSide.v
             if page_index == 108:
-                # NOTE: CAAK has incorrect numbering of pages for this book, k. 53r is scanned two times (#107 and #108).
+                # NOTE: CAAK has incorrect numbering of pages for this book, f. 53r is scanned twice (#107 and #108).
                 page_number = 53
                 page_side = PageSide.v
         if book_id == 'AAdm 13' and page_number == 11 and page_side == PageSide.v:
             # NOTE: CAAK has incorrect numbering of pages for this book, after 11r goes 12v.
             page_number = 12
+        if book_id == 'AOff 168':
+            if page_index == 1227:
+                # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
+                page_number = 611
+                page_side = PageSide.v
 
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:
@@ -101,8 +108,10 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
 
     return set(expected_pages.values())
 
+
 def build_caak_url(page_no: int) -> str:
     return f"https://caak.upjp2.edu.pl/j/{archival_entry.url_id}/s/{page_no - 1}/f"
+
 
 def restart_app():
     x_offset = -left_monitor_width_px if setup == 'work' else 0
@@ -123,6 +132,7 @@ def get_pixel(x: int, y: int):
             restart_app()
         time.sleep(get_pixel_error_timeout)
 
+
 def get_url_content() -> str:
     pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
     pyautogui.click(clicks=2)
@@ -138,6 +148,7 @@ def get_url_content() -> str:
         except _tkinter.TclError:
             time.sleep(url_clipboard_retry_interval_secs)
     return clipboard_content
+
 
 def abort_if_not_on_caak_webpage():
     if browser != 'chrome':
@@ -171,6 +182,7 @@ def abort_if_not_on_caak_webpage():
             print("Likely not on AKMK website.")
             exit(1)
 
+
 def put_url_to_clipboard(url: str):
     while True:
         try:
@@ -184,11 +196,13 @@ def put_url_to_clipboard(url: str):
         except _tkinter.TclError:
             time.sleep(url_clipboard_retry_interval_secs)
 
+
 def paste_url_from_clipboard():
     pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
     pyautogui.click(clicks=2)
     pyautogui.hotkey('ctrl', 'a')
     pyautogui.hotkey('ctrl', 'v')
+
 
 def visit_webpage(url: str):
     print(f"Visiting: {url}")
@@ -228,6 +242,7 @@ def reload_webpage():
     print('Reloading...')
     pyautogui.hotkey('ctrl', 'f5')
 
+
 def wait_until_loaded():
     waiting_marker: str = '.'
 
@@ -260,14 +275,17 @@ def wait_until_loaded():
         time.sleep(timeout_download_subsequent_secs)
     print()
 
+
 def is_download_list_opened():
     download_list_background_color = download_list_background_color_repo[browser]
     sample_location = download_list_sample_location_repo[browser]
     sampled_color = get_pixel(sample_location.x + x_offset, sample_location.y)
     return sampled_color == download_list_background_color
 
+
 def click_download():
     pyautogui.click(download_button_coords.x + x_offset, download_button_coords.y)
+
 
 def move_downloaded_files(book_id: ArchiveBookId, repo_dir: Path):
     if not os.path.exists(repo_dir):
@@ -283,14 +301,19 @@ def move_downloaded_files(book_id: ArchiveBookId, repo_dir: Path):
             if f"{book_file_id}#" not in filename or not filename.endswith('.jpg'):
                 continue
             try:
-                # NOTE: Some files on AKMK server has incorrect suffixes (e.g. 'xxx 1.jpg' instead of 'xxx.jpg').
+                # NOTE: Some files on CAAK server has incorrect suffixes (e.g. 'xxx 1.jpg' instead of 'xxx.jpg').
                 # NOTE: Some files could be downloaded multiple times, hence Windows appends ' (N)' to the filename.
                 new_filename = re.sub(r'(( \(\d\))|( 1))(?=\.jpg)', '', filename)
+
+                if new_filename == 'AKMKr_AOff_124#0022_':
+                    # NOTE: This file is incorrectly named on CAAK server.
+                    new_filename = 'AKMKr_AOff_124#0022_r'
 
                 shutil.move(download_dir / filename, repo_dir / new_filename)
             except Exception as e:
                 print(f"Error while moving file {book_id}/{filename}: {e}")
         break  # Do not visit directories recursively.
+
 
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
@@ -317,29 +340,23 @@ if __name__ == "__main__":
             page_no = page_inx + 1
             caak_url = build_caak_url(page_no)
 
-            # # FIXME: Click on task bar.
-            # upper_row_y: int = 1035
-            # # pyautogui.click(500, 1065)
-            # pyautogui.click(600, upper_row_y)
-            # time.sleep(1)
-            # # pyautogui.click(600, 1065)
-            # pyautogui.click(765, upper_row_y)
-            # time.sleep(1)
-
             visit_webpage(caak_url)
             start_processing_page_time = datetime.datetime.now()
 
             wait_until_loaded()
+
+            now = datetime.datetime.now()
+            elapsed_time = now - start_processing_page_time
+            if elapsed_time.seconds < timeout_download_button_click_secs:
+                waiting_time = timeout_download_button_click_secs - int(elapsed_time.seconds)
+                print(f"Waiting {waiting_time} secs more before clicking 'Download' button.")
+                time.sleep(waiting_time)
 
             # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
             safe_point = safe_point_location_repo[browser]
             pyautogui.click(safe_point.x + x_offset, safe_point.y)
 
             time.sleep(safe_point_click_timeout)
-            # if is_download_list_opened():
-            #     # NONTE: If the list of downloaded file is visible, click in "safe area" to close it.
-            #     safe_point = Point(x=150, y=500)
-            #     pyautogui.click(safe_point.x + x_offset, safe_point.y)
             click_download()
             num_downloaded_pages += 1
 
@@ -350,7 +367,7 @@ if __name__ == "__main__":
             elapsed_time = now - start_processing_page_time
             if elapsed_time.seconds < download_interval_secs:
                 waiting_time = download_interval_secs - int(elapsed_time.seconds)
-                print(f"The process took too little time - waiting {waiting_time} seconds more.")
+                print(f"Waiting {waiting_time} secs more before downloading the next page...")
                 time.sleep(waiting_time)
 
             time.sleep(download_safeguard_interval_secs)

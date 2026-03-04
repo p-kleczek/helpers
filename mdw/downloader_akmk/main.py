@@ -45,9 +45,10 @@ download_safeguard_interval_secs: float = 1.0
 url_clipboard_retry_interval_secs: float = 1.0
 """Idle time before subsequent attempt to access clipboard."""
 safe_point_click_timeout: float = 0.2
+visiting_webpage_timeout: float = 2.0
 timeout_download_button_click_secs: float = 5.0
 timeout_download_subsequent_secs: float = 0.5
-max_waiting_time_secs: float = 30
+max_waiting_time_secs: float = 60
 get_pixel_error_timeout: float = 5.0
 num_downloads_before_reload: int = 50
 
@@ -135,16 +136,17 @@ def get_pixel(x: int, y: int):
 def get_url_content() -> str:
     pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
     pyautogui.click(clicks=2)
-    pyautogui.hotkey('ctrl', 'a')
-    pyautogui.hotkey('ctrl', 'c')
-    pyautogui.hotkey('ctrl', 'a')
-    pyautogui.hotkey('ctrl', 'c')
+    for copy_inx in range(2):
+        # NOTE: Performing a copy once is not enough.
+        pyautogui.hotkey('ctrl', 'a')
+        pyautogui.hotkey('ctrl', 'c')
 
     while True:
         try:
             clipboard_content = tkinter.Tk().clipboard_get()
             break
-        except _tkinter.TclError:
+        except _tkinter.TclError as e:
+            print(e)
             time.sleep(url_clipboard_retry_interval_secs)
     return clipboard_content
 
@@ -226,6 +228,7 @@ def visit_webpage(url: str):
         # pyautogui.press('del')
         # abort_if_not_on_caak_webpage()
         pyautogui.write(url, interval=0.025)
+        time.sleep(3)  # FIXME: Needed to make sure that pyautogui.write() finished its job.
 
         url_content = get_url_content()
         if url_content == url:
@@ -351,9 +354,10 @@ if __name__ == "__main__":
             page_no = page_inx + 1
             caak_url = build_caak_url(page_no)
 
-            visit_webpage(caak_url)
             start_processing_page_time = datetime.datetime.now()
+            visit_webpage(caak_url)
 
+            time.sleep(visiting_webpage_timeout)
             wait_until_loaded()
 
             now = datetime.datetime.now()

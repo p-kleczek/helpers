@@ -37,6 +37,12 @@ class ArchiveBookData:
     #                             first_notes_page_inx=INX,
     #                             last_notes_page_inx=INX),
 archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
+    'AOff 115': ArchiveBookData(url_id='5fd9f6bd268b8c3c51fdf67f',
+                                num_pages=1239,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1235),
+
     'AOff 123': ArchiveBookData(url_id='5f43e8b2b593ba085fead762',
                                 num_pages=1624,
                                 current_page_numbering=PageNumeringType.Foliation,
@@ -60,6 +66,42 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                 current_page_numbering=PageNumeringType.Foliation,
                                 first_notes_page_inx=4,
                                 last_notes_page_inx=1511),
+
+    'AOff 127': ArchiveBookData(url_id='5f50c9576734500d230b7b90',
+                                num_pages=2028,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=6,
+                                last_notes_page_inx=2027),
+
+    'AOff 128': ArchiveBookData(url_id='5f200088cfeb640819f319d5',
+                                num_pages=1367,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1365),
+
+    'AOff 129': ArchiveBookData(url_id='5f4621d2e8bed008530af24f',
+                                num_pages=1968,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=14,
+                                last_notes_page_inx=1965),
+
+    'AOff 130': ArchiveBookData(url_id='5f468403a9811f4424676610',
+                                num_pages=1834,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=6,
+                                last_notes_page_inx=1821),
+
+    'AOff 131': ArchiveBookData(url_id='5f4920bb0a187b0fabb11ed8',
+                                num_pages=1934,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=10,
+                                last_notes_page_inx=1930),
+
+    'AOff 132': ArchiveBookData(url_id='5f2d568742fc9508a631d244',
+                                num_pages=1242,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=8,
+                                last_notes_page_inx=1239),
 
     # TODO: Other AOff ...
 

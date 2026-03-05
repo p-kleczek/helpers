@@ -37,11 +37,35 @@ class ArchiveBookData:
     #                             first_notes_page_inx=INX,
     #                             last_notes_page_inx=INX),
 archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
+    'AOff 113': ArchiveBookData(url_id='5fd9f6b6a84a183c3fbab96e',
+                                num_pages=1410,
+                                current_page_numbering=PageNumeringType.Pagination,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1407),
+
     'AOff 115': ArchiveBookData(url_id='5fd9f6bd268b8c3c51fdf67f',
                                 num_pages=1239,
                                 current_page_numbering=PageNumeringType.Foliation,
                                 first_notes_page_inx=4,
                                 last_notes_page_inx=1235),
+
+    'AOff 120': ArchiveBookData(url_id='5f075c815c491007c27786e8',
+                                num_pages=1024,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=6,
+                                last_notes_page_inx=1021),
+
+    'AOff 121': ArchiveBookData(url_id='5f2000988498b808336227ec',
+                                num_pages=1830,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                last_notes_page_inx=1826),
+
+    'AOff 122': ArchiveBookData(url_id='5f1ca96ad6e76107f43f6ef5',
+                                num_pages=510,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=1,
+                                last_notes_page_inx=505),
 
     'AOff 123': ArchiveBookData(url_id='5f43e8b2b593ba085fead762',
                                 num_pages=1624,

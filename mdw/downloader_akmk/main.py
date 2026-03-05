@@ -70,7 +70,10 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
     page_side: PageSide = PageSide.r
     book: ArchiveBookData = archive_books[book_id]
     for page_index in range(book.first_notes_page_inx, book.last_notes_page_inx + 1):
-        page_id_prefix = "" if book_id == 'AAdm 2' else "AKMKr_"
+        page_id_prefix = {
+            'AAdm 2': '',
+            'AOff 129': 'AKMKR_'
+        }.get(book_id, 'AKMKr_')
         page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
 
         expected_pages[page_id] = page_index
@@ -84,16 +87,21 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
                 page_side = PageSide.v
             if page_index == 108:
                 # NOTE: CAAK has incorrect numbering of pages for this book, f. 53r is scanned twice (#107 and #108).
-                page_number = 53
-                page_side = PageSide.v
+                page_number, page_side = 53, PageSide.v
         if book_id == 'AAdm 13' and page_number == 11 and page_side == PageSide.v:
-            # NOTE: CAAK has incorrect numbering of pages for this book, after 11r goes 12v.
+            # NOTE: CAAK has incorrect numbering of pages for this book, after f. 11r goes f. 12v.
             page_number = 12
+        if book_id == 'AOff 122':
+            if page_index == 2:
+                # NOTE: CAAK has incorrect numbering of pages for this book, after f. 1r goes f. Okl_1r.
+                page_number, page_side = 1, PageSide.v
+            if page_index == 6:
+                # NOTE: CAAK has incorrect numbering of pages for this book, after f. 2r goes f. Target_2v.
+                page_number, page_side = 2, PageSide.v
         if book_id == 'AOff 168':
             if page_index == 1227:
                 # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
-                page_number = 611
-                page_side = PageSide.v
+                page_number, page_side = 611, PageSide.v
 
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:

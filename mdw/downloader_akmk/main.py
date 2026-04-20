@@ -4,7 +4,7 @@ import os
 import re
 import shutil
 import time
-from typing import Set
+from typing import Set, List
 
 from archives import *
 from environment_settings import *
@@ -74,7 +74,9 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             'AAdm 2': '',
             'AOff 129': 'AKMKR_'
         }.get(book_id, 'AKMKr_')
-        page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
+        page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}" \
+            if book_id == 'AOff 113' \
+            else f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
 
         expected_pages[page_id] = page_index
         if book.current_page_numbering == PageNumeringType.Pagination or page_side == PageSide.v:
@@ -213,9 +215,19 @@ def paste_url_from_clipboard():
     pyautogui.hotkey('ctrl', 'v')
 
 
+timeout_visit_webpage_initial_secs: float = 3.0
+timeout_visit_webpage_decay_secs: float = 0.2
+visit_webpage_times: List[float] = []
+
+
 def visit_webpage(url: str):
     print(f"Visiting: {url}")
 
+    last_n_readings = visit_webpage_times[-5:]
+    past_average_timeout = sum(last_n_readings) / len(last_n_readings) if last_n_readings else timeout_visit_webpage_initial_secs
+    print(f"Past average timeout: {past_average_timeout:.1f} sec.")
+
+    retry_counter: int = 0
     while True:
         # NOTE: New way of inserting the address (needs to be refined).
         # pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
@@ -236,14 +248,18 @@ def visit_webpage(url: str):
         # pyautogui.press('del')
         # abort_if_not_on_caak_webpage()
         pyautogui.write(url, interval=0.025)
-        time.sleep(3)  # FIXME: Needed to make sure that pyautogui.write() finished its job.
+
+        timeout = (past_average_timeout - timeout_visit_webpage_decay_secs) + retry_counter
+        time.sleep(timeout)  # NOTE: Needed to make sure that pyautogui.write() finished its job.
 
         url_content = get_url_content()
         if url_content == url:
+            visit_webpage_times.append(timeout)
             break
 
         print(f"ULR: expected = {url}, actual = {url_content}")
-        print("Retrying...")
+        print(f"Retrying... (timeout was: {timeout:.1f} sec.)")
+        retry_counter += 1
 
     pyautogui.press('enter')
 

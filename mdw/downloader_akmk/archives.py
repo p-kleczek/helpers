@@ -1,6 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from enum import Enum, auto, StrEnum
-from typing import Dict, Optional
+from typing import Dict, Optional, List
 
 ArchiveBookId = str
 
@@ -32,6 +32,8 @@ class ArchiveBookData:
     "Index of the first page with the list of cases (usually at the end of the book)."
     last_notes_page_inx: PageIndex
     "Index of the last page with notes (i.e., actual archival content)."
+    broken_file_indexes: List[PageIndex] = field(default_factory=list)
+    "Indexes for which downloading the preview stucks."
 
     # 'AOff NNN': ArchiveBookData(url_id='URL_ID',
     #                             num_pages=NUM_PAGES,
@@ -165,7 +167,7 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                 num_pages=1380,
                                 current_page_numbering=PageNumeringType.Pagination,
                                 first_notes_page_inx=5,
-                                index_start_inx=1354,
+                                index_start_inx=1353,
                                 last_notes_page_inx=1377),
 
     # TODO: Other AOff ...
@@ -174,8 +176,9 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                 num_pages=576,
                                 current_page_numbering=PageNumeringType.Pagination,
                                 first_notes_page_inx=10,
-                                index_start_inx=None,  # FIXME: Check it.
-                                last_notes_page_inx=572),
+                                index_start_inx=None,
+                                last_notes_page_inx=572,
+                                broken_file_indexes=[128, 152]),
     # TODO: AOff 159-164
 
     'AOff 165': ArchiveBookData(url_id='5ffc1f73301dd32857d16f82',

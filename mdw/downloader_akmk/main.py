@@ -22,12 +22,14 @@ parser.add_argument('setup')
 parser.add_argument('windows_placement')
 parser.add_argument('browser')
 parser.add_argument('--queue')
+parser.add_argument('--indexes', action='store_true')
 args = parser.parse_args()
 
 setup = args.setup
 windows_placement = args.windows_placement
 browser = args.browser
 queue = args.queue.split(';') if args.queue else list(archive_books.keys())
+indexes_only = args.indexes
 
 address_bar_coords = address_bar_coords_repo[setup][windows_placement][browser]
 download_button_coords = download_button_coords_repo[setup][windows_placement][browser]
@@ -75,7 +77,7 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             'AOff 129': 'AKMKR_'
         }.get(book_id, 'AKMKr_')
         page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}" \
-            if book_id == 'AOff 113' \
+            if book_id in ['AOff 113', 'AOff 158'] \
             else f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
 
         expected_pages[page_id] = page_index
@@ -375,6 +377,13 @@ if __name__ == "__main__":
         print()
 
         for page_inx in sorted(expected_pages):
+            if indexes_only and (archival_entry.index_start_inx is None or page_inx < archival_entry.index_start_inx):
+                continue
+
+            if page_inx in archival_entry.broken_file_indexes:
+                print(f"Skipping broken file: #{page_inx}.")
+                continue
+
             page_no = page_inx + 1
             caak_url = build_caak_url(page_no)
 

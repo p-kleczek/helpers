@@ -6,6 +6,8 @@ import shutil
 import time
 from typing import Set, List
 
+import pyperclip
+
 from archives import *
 from environment_settings import *
 
@@ -23,6 +25,7 @@ parser.add_argument('windows_placement')
 parser.add_argument('browser')
 parser.add_argument('--queue')
 parser.add_argument('--indexes', action='store_true')
+parser.add_argument('--screening', type=int, default=1, help="Download only every n-th page.")
 args = parser.parse_args()
 
 setup = args.setup
@@ -30,6 +33,7 @@ windows_placement = args.windows_placement
 browser = args.browser
 queue = args.queue.split(';') if args.queue else list(archive_books.keys())
 indexes_only = args.indexes
+screening_interval = args.screening
 
 address_bar_coords = address_bar_coords_repo[setup][windows_placement][browser]
 download_button_coords = download_button_coords_repo[setup][windows_placement][browser]
@@ -106,10 +110,14 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             if page_index == 1227:
                 # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
                 page_number, page_side = 611, PageSide.v
+        if book_id == 'AOff 153':
+            if page_index == 4:
+                # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
+                page_number, page_side = 2, PageSide.v
 
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:
-            if book_file_id not in filename or not filename.endswith('.jpg'):
+            if (book_file_id not in filename) or not filename.endswith('.jpg'):
                 continue
             page_id = filename.split('.')[0]
             try:
@@ -148,19 +156,24 @@ def get_pixel(x: int, y: int):
 def get_url_content() -> str:
     pyautogui.moveTo(address_bar_coords.x + x_offset, address_bar_coords.y)
     pyautogui.click(clicks=2)
-    for copy_inx in range(2):
-        # NOTE: Performing a copy once is not enough.
-        pyautogui.hotkey('ctrl', 'a')
-        pyautogui.hotkey('ctrl', 'c')
+    time.sleep(0.1)  # allow selection
+
+    last_value = None
 
     while True:
-        try:
-            clipboard_content = tkinter.Tk().clipboard_get()
-            break
-        except _tkinter.TclError as e:
-            print(e)
-            time.sleep(url_clipboard_retry_interval_secs)
-    return clipboard_content
+        pyautogui.hotkey('ctrl', 'a')
+        time.sleep(0.05)
+        pyautogui.hotkey('ctrl', 'c')
+        time.sleep(0.1)  # allow clipboard to update
+
+        clipboard_content = pyperclip.paste()
+
+        if clipboard_content and clipboard_content != last_value:
+            return clipboard_content
+
+        last_value = clipboard_content
+        time.sleep(url_clipboard_retry_interval_secs)
+        print("Retrying URL copying...")
 
 
 def abort_if_not_on_caak_webpage():
@@ -226,7 +239,8 @@ def visit_webpage(url: str):
     print(f"Visiting: {url}")
 
     last_n_readings = visit_webpage_times[-5:]
-    past_average_timeout = sum(last_n_readings) / len(last_n_readings) if last_n_readings else timeout_visit_webpage_initial_secs
+    past_average_timeout = sum(last_n_readings) / len(
+        last_n_readings) if last_n_readings else timeout_visit_webpage_initial_secs
     print(f"Past average timeout: {past_average_timeout:.1f} sec.")
 
     retry_counter: int = 0
@@ -359,7 +373,7 @@ if __name__ == "__main__":
     start_time = datetime.datetime.now()
     num_downloaded_pages = 0
 
-    for archive_signature in queue:
+    for archive_signature in archive_books:
         book_file_id = get_book_file_id(archive_signature)
         repo_dir: Path = repo_root_dir / book_file_id
         move_downloaded_files(archive_signature, repo_dir)
@@ -376,8 +390,15 @@ if __name__ == "__main__":
         print(f"\tPage indexes to download: {sorted(expected_pages)}")
         print()
 
+        indexes_inxs: Set[PageIndex] = set()
+        for entry in archival_entry.indexes:
+            indexes_inxs.update(range(entry.start_inx, entry.end_inx + 1))
+
         for page_inx in sorted(expected_pages):
-            if indexes_only and (archival_entry.index_start_inx is None or page_inx < archival_entry.index_start_inx):
+            if indexes_only and (page_inx not in indexes_inxs):
+                continue
+
+            if page_inx % screening_interval != 0:
                 continue
 
             if page_inx in archival_entry.broken_file_indexes:

@@ -42,15 +42,191 @@ class ArchiveBookData:
     broken_file_indexes: List[PageIndex] = field(default_factory=list)
     "Indexes for which downloading the preview stucks."
 
-    # 'AOff NNN': ArchiveBookData(url_id='URL_ID',
+    # 'AEp NNN': ArchiveBookData(url_id='URL_ID',
     #                             num_pages=NUM_PAGES,
     #                             current_page_numbering=PageNumeringType.TYPE,
     #                             first_notes_page_inx=INX,
-    #                             indexes = [],  # FIXME: Check it.
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
     #                             last_notes_page_inx=INX),
 
 
 archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
+    'AEp 35': ArchiveBookData(url_id='5fd9f6cea84a183c3fbab9e2',
+                              num_pages=1114,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=8,
+                              indexes=[IndexRange(1092, 1093, year=1600), IndexRange(1093, 1099, year=1601),
+                                       IndexRange(1099, 1111, year=1601)],
+                              last_notes_page_inx=1111),
+
+    'AEp 80': ArchiveBookData(url_id='5e4a845085925c58390ac555',
+                              num_pages=814,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=1,
+                              indexes=[IndexRange(787, 793, year=1728), IndexRange(793, 799, year=1729),
+                                       IndexRange(799, 805, year=1730)],
+                              last_notes_page_inx=805),
+
+    'AEp 81': ArchiveBookData(url_id='5f0d7c6565285c0903339d18',
+                              num_pages=464,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              indexes=[IndexRange(449, 455, year=1731), IndexRange(455, 458, year=1732)],
+                              last_notes_page_inx=458),
+
+    'AEp 82': ArchiveBookData(url_id='5f1a71493f5f2408d94abee2',
+                              num_pages=1248,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=12,
+                              indexes=[IndexRange(1206, 1207, year=1734), IndexRange(1207, 1209, year=1735),
+                                       IndexRange(1210, 1221, year=1736), IndexRange(1221, 1238, year=1737)],
+                              last_notes_page_inx=1238),
+
+    'AEp 90': ArchiveBookData(url_id='60a51addfcb1be07f560bfc1',
+                              num_pages=684,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              indexes=[IndexRange(664, 678, year=1750)],
+                              last_notes_page_inx=678),
+
+    'AEp 91': ArchiveBookData(url_id='60a62c36fdeed9095ec0e990',
+                              num_pages=492,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=5,
+                              indexes=[IndexRange(467, 478, year=1751), IndexRange(479, 486, year=1752)],
+                              last_notes_page_inx=486),
+
+    'AEp 92': ArchiveBookData(url_id='5f1031d578bbb208d7defdc7',
+                              num_pages=466,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              indexes=[IndexRange(444, 452, year=1753), IndexRange(454, 463, year=1754)],
+                              last_notes_page_inx=463),
+
+    'AEp 93': ArchiveBookData(url_id='5f2d40953ce7600867e3d3de',
+                              num_pages=358,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=6,
+                              indexes=[IndexRange(348, 352, year=1755)],
+                              last_notes_page_inx=352),
+
+    'AEp 94': ArchiveBookData(url_id='5f4f8e2f99b1ae0d2c1df953',
+                              num_pages=680,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              indexes=[IndexRange(672, 675, year=1756)],
+                              last_notes_page_inx=675),
+
+    'AEp 95': ArchiveBookData(url_id='5f105ad278bbb208d7df052b',
+                              num_pages=374,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=0,
+                              indexes=[IndexRange(366, 369, year=1757), IndexRange(369, 370, year=1758)],
+                              # FIXME: Check it.
+                              last_notes_page_inx=370),
+
+    'AEp 96': ArchiveBookData(url_id='5f0d8c7b3f5f2408d9485fec',
+                              num_pages=424,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=7,
+                              indexes=[IndexRange(417, 419, year=1758)],  # FIXME: Check it.
+                              last_notes_page_inx=419),
+
+    'AEp 97': ArchiveBookData(url_id='5f0da2961536770904bff132',
+                              num_pages=404,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              indexes=[IndexRange(392, 396, year=1758)],  # FIXME: Check it.
+                              last_notes_page_inx=396),
+
+    'AEp 98': ArchiveBookData(url_id='5f2bd0e3c7b200083bbe31a6',
+                              num_pages=708,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=8,
+                              indexes=[IndexRange(688, 689, year=1759), IndexRange(689, 692, year=1760),
+                                       IndexRange(692, 694, year=1761), IndexRange(694, 694, year=1762),
+                                       IndexRange(695, 697, year=1763), IndexRange(697, 697, year=1764),
+                                       IndexRange(697, 699, year=1765), IndexRange(699, 700, year=1766),
+                                       IndexRange(700, 701, year=1767), IndexRange(701, 701, year=1768),
+                                       IndexRange(701, 702, year=1769), IndexRange(702, 702, year=1770),
+                                       IndexRange(702, 703, year=1771), IndexRange(703, 703, year=1772)],
+                              last_notes_page_inx=703),
+
+    # NOTE: 1773-02 - 1782
+    # 'AEp 99': ArchiveBookData(url_id='5f2bf33b5ec1890890969da6',
+    #                             num_pages=1348,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=6,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],
+    #                             last_notes_page_inx=INX),
+
+    'AEp 102': ArchiveBookData(url_id='5f59eb1c4dbce3082cec6dfd',
+                                num_pages=794,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=6,
+                                indexes = [IndexRange(782, 791, year=1760)],
+                                last_notes_page_inx=791),
+
+    # 'AEp 103': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
+    #                             last_notes_page_inx=INX),
+
+    # 'AEp 104': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
+    #                             last_notes_page_inx=INX),
+
+    # 'AEp 105': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
+    #                             last_notes_page_inx=INX),
+
+    # 'AEp 106': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
+    #                             last_notes_page_inx=INX),
+
+    # 'AEp 107': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
+    #                             last_notes_page_inx=INX),
+
+    # 'AEp 108': ArchiveBookData(url_id='URL_ID',
+    #                             num_pages=NUM_PAGES,
+    #                             current_page_numbering=PageNumeringType.TYPE,
+    #                             first_notes_page_inx=INX,
+    #                             indexes = [IndexRange(INX1, INX2, year=YYYY)],  # FIXME: Check it.
+    #                             last_notes_page_inx=INX),
+
+    # ===============================================================
+
+    'AOff 110': ArchiveBookData(url_id='5fd9f58f31bdef3c5713d51e',
+                                num_pages=674,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=6,
+                                indexes=[],
+                                last_notes_page_inx=669),
+
+    # AOff 111 - brak w CAAK
+
+    'AOff 112': ArchiveBookData(url_id='5fd9f6aaf0570e3c6e4bc0e7',
+                                num_pages=1496,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=5,
+                                indexes=[],
+                                last_notes_page_inx=1488),
+
     'AOff 113': ArchiveBookData(url_id='5fd9f6b6a84a183c3fbab96e',
                                 num_pages=1410,
                                 current_page_numbering=PageNumeringType.Pagination,
@@ -292,7 +468,7 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
 
     'AOff 155': ArchiveBookData(url_id='5f58a16b1a771a08293cb92e',
                                 num_pages=1100,
-                                current_page_numbering=PageNumeringType.Foliation,
+                                current_page_numbering=PageNumeringType.Pagination,
                                 first_notes_page_inx=5,
                                 indexes=[IndexRange(367, 373, year=1678), IndexRange(1083, 1097, year=1679)],
                                 last_notes_page_inx=1097),
@@ -310,7 +486,7 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                 current_page_numbering=PageNumeringType.Foliation,
                                 first_notes_page_inx=6,
                                 indexes=[IndexRange(704, 724, year=1686), IndexRange(1266, 1279, year=1687),
-                                         IndexRange(2236, 2253, year=1688)],
+                                         IndexRange(2236, 2250, year=1688), IndexRange(2250, 2253, year=1689)],
                                 last_notes_page_inx=2253),
 
     # TODO: Other AOff ...

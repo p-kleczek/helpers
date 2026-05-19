@@ -68,7 +68,7 @@ def get_book_file_id(book_id: ArchiveBookId) -> str:
     return book_id.replace(' ', '_')
 
 
-def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set[int]:
+def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Dict[str, PageIndex]:
     book_file_id = get_book_file_id(book_id)
 
     expected_pages: Dict[str, PageIndex] = {}
@@ -80,9 +80,15 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             'AAdm 2': '',
             'AOff 129': 'AKMKR_'
         }.get(book_id, 'AKMKr_')
-        page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}" \
-            if book_id in ['AOff 113', 'AOff 158'] \
-            else f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
+
+        page_id = None
+        if book_id in ['AOff 113', 'AOff 158']:
+            page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}"
+        elif book_id == 'AEp 35' and page_index == 339:
+            # NOTE: Brak '_' między numerem karty a oznaczeniem 'r'/'v'.
+            page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}{page_side}"
+        else:
+            page_id = f"{page_id_prefix}{book_file_id}#{page_number:04d}_{page_side}"
 
         expected_pages[page_id] = page_index
         if book.current_page_numbering == PageNumeringType.Pagination or page_side == PageSide.v:
@@ -99,6 +105,15 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
         if book_id == 'AAdm 13' and page_number == 11 and page_side == PageSide.v:
             # NOTE: CAAK has incorrect numbering of pages for this book, after f. 11r goes f. 12v.
             page_number = 12
+        if book_id == 'AOff 110':
+            # 3v (#11) -> 4v (#12) -> 4r (#13) -> 5r (#14)
+            if page_index == 11:
+                page_number, page_side = 4, PageSide.v
+            if page_index == 12:
+                page_number, page_side = 4, PageSide.r
+            if page_index == 13:
+                page_number, page_side = 5, PageSide.r
+
         if book_id == 'AOff 122':
             if page_index == 2:
                 # NOTE: CAAK has incorrect numbering of pages for this book, after f. 1r goes f. Okl_1r.
@@ -106,14 +121,18 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
             if page_index == 6:
                 # NOTE: CAAK has incorrect numbering of pages for this book, after f. 2r goes f. Target_2v.
                 page_number, page_side = 2, PageSide.v
-        if book_id == 'AOff 168':
-            if page_index == 1227:
-                # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
-                page_number, page_side = 611, PageSide.v
         if book_id == 'AOff 153':
             if page_index == 4:
                 # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
                 page_number, page_side = 2, PageSide.v
+        if book_id == 'AOff 155':
+            if page_index == 5:
+                # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
+                page_number, page_side = 2, PageSide.v
+        if book_id == 'AOff 168':
+            if page_index == 1227:
+                # NOTE: CAAK has incorrect numbering of pages for this book, f. 611r is scanned twice (#1226 and #1227).
+                page_number, page_side = 611, PageSide.v
 
     for (dirpath, dirnames, filenames) in os.walk(download_dir):
         for filename in filenames:
@@ -126,7 +145,7 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Set
                 print(f"Key not found: {page_id}")
         break  # Do not visit directories recursively.
 
-    return set(expected_pages.values())
+    return expected_pages
 
 
 def build_caak_url(page_no: int) -> str:
@@ -386,15 +405,14 @@ if __name__ == "__main__":
         repo_dir: Path = repo_root_dir / book_file_id
 
         # move_downloaded_files(archive_signature, repo_dir)
-        expected_pages = get_missing_pages_indexes(archive_signature, repo_dir)
-        print(f"\tPage indexes to download: {sorted(expected_pages)}")
-        print()
+        expected_pages: Dict[str, PageIndex] = get_missing_pages_indexes(archive_signature, repo_dir)
+        print(f"\tPage indexes to download: {sorted(expected_pages.values())}")
 
         indexes_inxs: Set[PageIndex] = set()
         for entry in archival_entry.indexes:
             indexes_inxs.update(range(entry.start_inx, entry.end_inx + 1))
 
-        for page_inx in sorted(expected_pages):
+        for page_id, page_inx in expected_pages.items():
             if indexes_only and (page_inx not in indexes_inxs):
                 continue
 
@@ -404,6 +422,13 @@ if __name__ == "__main__":
             if page_inx in archival_entry.broken_file_indexes:
                 print(f"Skipping broken file: #{page_inx}.")
                 continue
+
+            page_type: str = 'p.' if archival_entry.current_page_numbering == PageNumeringType.Pagination else 'f.'
+            page_id_human = page_id.split('#')[-1].lstrip('0').replace('_', '')
+            print(
+                f"Processing page "
+                f"{page_type} {page_id_human} (# "
+                f"{page_inx})...")
 
             page_no = page_inx + 1
             caak_url = build_caak_url(page_no)

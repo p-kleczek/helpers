@@ -7,6 +7,7 @@ import time
 from typing import Set, List
 
 import pyperclip
+import requests
 
 from archives import *
 from environment_settings import *
@@ -16,6 +17,7 @@ import pyautogui
 import tkinter
 
 from mdw.downloader_akmk.environment_settings import repo_root_dir_repo
+from mdw.downloader_akmk.sdm_crawler import get_sdm_imgs_urls
 
 queue = list(archive_books.keys())
 
@@ -44,7 +46,11 @@ repo_root_dir = repo_root_dir_repo[setup]
 left_monitor_width_px = 1920 if setup in ['priv-pk', 'work'] else 0
 x_offset = 1920 if setup == 'priv-pk' else 0  # Represents another offset to the right screen.
 
-download_interval_secs: float = 6.0 if browser == 'chrome' else 10.0
+download_interval_secs_repo: Dict[ArchiveId, float] = {
+    ArchiveId.SDM: 3.0,
+    ArchiveId.CAAK: 6.0 if browser == 'chrome' else 10.0
+}
+
 download_safeguard_interval_secs: float = 1.0
 """Idle time between clicking "Download" button and proceeding to the next page."""
 
@@ -148,7 +154,7 @@ def get_missing_pages_indexes(book_id: ArchiveBookId, download_dir: Path) -> Dic
     return expected_pages
 
 
-def build_caak_url(page_no: int) -> str:
+def build_caak_url(archival_entry: ArchiveBookData, page_no: int) -> str:
     return f"https://caak.upjp2.edu.pl/j/{archival_entry.url_id}/s/{page_no - 1}/f"
 
 
@@ -304,7 +310,7 @@ def reload_webpage():
     pyautogui.hotkey('ctrl', 'f5')
 
 
-def wait_until_loaded():
+def wait_until_loaded(is_narrow_page: bool):
     waiting_marker: str = '.'
 
     n_retries = 0
@@ -332,11 +338,12 @@ def wait_until_loaded():
         right: int = 1150
         top: int = 400
         bottom: int = 960
+        narrow_page_offset: int = 50 if is_narrow_page else 0
         sample_locations = [
-            Point(x=left, y=top),
-            Point(x=right, y=top),
-            Point(x=left, y=bottom),
-            Point(x=right, y=bottom),
+            Point(x=left + narrow_page_offset, y=top),
+            Point(x=right - narrow_page_offset, y=top),
+            Point(x=left + narrow_page_offset, y=bottom),
+            Point(x=right - narrow_page_offset, y=bottom),
         ]
         for sample_location in sample_locations:
             sampled_color = get_pixel(sample_location.x + x_offset, sample_location.y)
@@ -412,6 +419,10 @@ if __name__ == "__main__":
         for entry in archival_entry.indexes:
             indexes_inxs.update(range(entry.start_inx, entry.end_inx + 1))
 
+        sdm_imgs_urls: List[str] = []
+        if archival_entry.archive_id == ArchiveId.SDM and expected_pages:
+            sdm_imgs_urls = get_sdm_imgs_urls(archival_entry.url_id)
+
         for page_id, page_inx in expected_pages.items():
             if indexes_only and (page_inx not in indexes_inxs):
                 continue
@@ -430,28 +441,49 @@ if __name__ == "__main__":
                 f"{page_type} {page_id_human} (# "
                 f"{page_inx})...")
 
-            page_no = page_inx + 1
-            caak_url = build_caak_url(page_no)
-
             start_processing_page_time = datetime.datetime.now()
-            visit_webpage(caak_url)
 
-            time.sleep(visiting_webpage_timeout)
-            wait_until_loaded()
+            if archival_entry.archive_id == ArchiveId.SDM:
+                # FIXME: page_inx vs. page_no - wyjaśnić niespójność między SDM a CAAK (bo dla wpisów SDM w
+                #  archives.py podawane są *numery* stron, a nie *indeksy* stron.
+                sdm_url = sdm_imgs_urls[page_inx - 1]
 
-            now = datetime.datetime.now()
-            elapsed_time = now - start_processing_page_time
-            if elapsed_time.seconds < timeout_download_button_click_secs:
-                waiting_time = timeout_download_button_click_secs - int(elapsed_time.seconds)
-                print(f"Waiting {waiting_time} secs more before clicking 'Download' button.")
-                time.sleep(waiting_time)
+                with open(Path(repo_dir) / f"{page_id}.jpg", 'wb') as handle:
+                    response = requests.get(sdm_url, stream=True)
 
-            # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
-            safe_point = safe_point_location_repo[browser]
-            pyautogui.click(safe_point.x + x_offset, safe_point.y)
+                    if not response.ok:
+                        print(response)
 
-            time.sleep(safe_point_click_timeout)
-            click_download()
+                    for block in response.iter_content(chunk_size=1024):
+                        if not block:
+                            break
+
+                        handle.write(block)
+            elif archival_entry.archive_id == ArchiveId.CAAK:
+                page_no = page_inx + 1
+                caak_url = build_caak_url(archival_entry, page_no)
+
+                visit_webpage(caak_url)
+
+                time.sleep(visiting_webpage_timeout)
+                wait_until_loaded(archival_entry.has_narrow_pages)
+
+                now = datetime.datetime.now()
+                elapsed_time = now - start_processing_page_time
+                if elapsed_time.seconds < timeout_download_button_click_secs:
+                    waiting_time = timeout_download_button_click_secs - int(elapsed_time.seconds)
+                    print(f"Waiting {waiting_time} secs more before clicking 'Download' button.")
+                    time.sleep(waiting_time)
+
+                # NONTE: In case of the list of downloaded file being visible, click in "safe area" to close it.
+                safe_point = safe_point_location_repo[browser]
+                pyautogui.click(safe_point.x + x_offset, safe_point.y)
+
+                time.sleep(safe_point_click_timeout)
+                click_download()
+            else:
+                raise NotImplementedError(f'Archive not supported: {archival_entry.archive_id}')
+
             num_downloaded_pages += 1
 
             now = datetime.datetime.now()
@@ -459,6 +491,7 @@ if __name__ == "__main__":
             print(f"Downloaded at: {now} \t (avg. speed: {total_time / num_downloaded_pages:.1f} sec./page)")
 
             elapsed_time = now - start_processing_page_time
+            download_interval_secs = download_interval_secs_repo[archival_entry.archive_id]
             if elapsed_time.seconds < download_interval_secs:
                 waiting_time = download_interval_secs - int(elapsed_time.seconds)
                 print(f"Waiting {waiting_time} secs more before downloading the next page...")
@@ -466,7 +499,7 @@ if __name__ == "__main__":
 
             time.sleep(download_safeguard_interval_secs)
 
-            if num_downloaded_pages % num_downloads_before_reload == 0:
+            if archival_entry.archive_id == ArchiveId.CAAK and num_downloaded_pages % num_downloads_before_reload == 0:
                 print("Preventive reload...")
                 reload_webpage()
 

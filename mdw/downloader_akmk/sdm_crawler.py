@@ -37,6 +37,6 @@ def get_sdm_imgs_urls(object_id: str):
 
     parser = SdmHTMLParser()
     parser.feed(resp_text)
-    print(parser.img_urls)
+    # print(parser.img_urls)
 
     return parser.img_urls

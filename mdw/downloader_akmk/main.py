@@ -47,7 +47,7 @@ left_monitor_width_px = 1920 if setup in ['priv-pk', 'work'] else 0
 x_offset = 1920 if setup == 'priv-pk' else 0  # Represents another offset to the right screen.
 
 download_interval_secs_repo: Dict[ArchiveId, float] = {
-    ArchiveId.SDM: 3.0,
+    ArchiveId.SDM: 1.0,
     ArchiveId.CAAK: 6.0 if browser == 'chrome' else 10.0
 }
 
@@ -433,6 +433,10 @@ if __name__ == "__main__":
             if page_inx in archival_entry.broken_file_indexes:
                 print(f"Skipping broken file: #{page_inx}.")
                 continue
+
+            # FIXME: DEBUG
+            # if archive_signature == 'AEp 31' and page_inx > 130:
+            #     continue
 
             page_type: str = 'p.' if archival_entry.current_page_numbering == PageNumeringType.Pagination else 'f.'
             page_id_human = page_id.split('#')[-1].lstrip('0').replace('_', '')

@@ -51,7 +51,7 @@ class ArchiveBookData:
     has_narrow_pages: bool = False
     "True w przypadku tzw. 'języczków' - a nie stronic normalnej szerokości."
 
-    # 'AEp NNN': ArchiveBookData(archive_id=ArchiveId.CAAK,
+    # 'AEp NNN': ArchiveBookData(archive_id=ArchiveId.SDM,
     #                             url_id='URL_ID',
     #                             num_pages=NUM_PAGES,
     #                             current_page_numbering=PageNumeringType.TYPE,
@@ -61,6 +61,55 @@ class ArchiveBookData:
 
 
 archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
+    'AEp 30': ArchiveBookData(archive_id=ArchiveId.SDM,
+                              url_id='volumen-unicum-actorum-episcopalium-revenderissimi-in-christo-patris-domini'
+                                     '-domini-francisci-krasinski-episcopi-cracoviensis-ducis-severiae-ab-anno-domini'
+                                     '-1752-mense-julio-ad-annum-domini-1577-mensem-martium-inclusive-et-successive'
+                                     '-acticatorum',
+                              num_pages=1428,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=6,
+                              indexes=[IndexRange(1394, 1395, year=1572), IndexRange(1395, 1402, year=1573),
+                                       IndexRange(1402, 1412, year=1573), IndexRange(1412, 1418, year=1575),
+                                       IndexRange(1418, 1425, year=1576), IndexRange(1425, 1426, year=1577)],
+                              last_notes_page_inx=1426),
+
+    'AEp 31': ArchiveBookData(archive_id=ArchiveId.SDM,
+                              url_id='acta-actorum-constitutionum-obligationum-resignationum-quietationum-tempore-r-d'
+                                     '-petr-myszkowski-episcopi-cracoviensis-qui-post-mortem-r-d-francisci-krasinski'
+                                     '-episcopi-cracoviensis-solius-dei-optimi-maximi-benignitate-serenissimi'
+                                     '-stephani-regis-poloniase-favore-et-clementia-ex-plocensi-ad-cracoviensem'
+                                     '-auctoritate-ssmi-gregorii-xiii-successit-ab-anno-1577-mense-novembri-ad-annum'
+                                     '-1591-mensem-aprilem-successive-acticatorum',
+                              num_pages=1150,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              # NOTE: Brak spisów dla zakresu do k. 60. (m.in. za r. 1577)
+                              indexes=[IndexRange(1106, 1109, year=1578), IndexRange(1109, 1113, year=1579),
+                                       IndexRange(1113, 1116, year=1580), IndexRange(1116, 1120, year=1581),
+                                       IndexRange(1120, 1122, year=1582), IndexRange(1122, 1124, year=1583),
+                                       IndexRange(1125, 1126, year=1584), IndexRange(1127, 1128, year=1585),
+                                       IndexRange(1129, 1130, year=1586), IndexRange(1130, 1131, year=1587),
+                                       IndexRange(1132, 1135, year=1588), IndexRange(1135, 1138, year=1589),
+                                       IndexRange(1138, 1140, year=1590), IndexRange(1140, 1143, year=1591)],
+                              last_notes_page_inx=1143),
+
+    # NOTE: AEp 32 dostepna tylko w AKMK.
+
+    'AEp 33': ArchiveBookData(archive_id=ArchiveId.SDM,
+                              url_id='acta-actorum-obligationum-erectionum-decretorum-rovisionum-instutionum'
+                                     '-confirmationum-caeterarumque-causarum-et-negotiorum-ad-forum-spirituale'
+                                     '-pertinentium-coram-r-d-georgio-s-r-e-cardinali-presbytero-radziwill-nuncupato'
+                                     '-perpetuo-administratore-episcopatus-cracoviensis-et-ducatus-severiensis-duce'
+                                     '-in-olika-et-niesiez-sacrique-romani-imperii-principe-ab-anno-1597-ad-annum'
+                                     '-1600-diem-12-februarii-inclusive-etiam-sub-ansentia-eius-cracoviae-acticatorum',
+                              num_pages=1124,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=4,
+                              indexes=[IndexRange(1092, 1097, year=1597), IndexRange(1098, 1104, year=1598),
+                                       IndexRange(1104, 1117, year=1599), IndexRange(1118, 1119, year=1600)],
+                              last_notes_page_inx=1119),
+
     'AEp 34': ArchiveBookData(archive_id=ArchiveId.SDM,
                               url_id='volumen-iii-actorum-radziwill-cardinalis-et-perpetui-administratoris-dioecesis'
                                      '-cracoviensis-ducis-severiae-negotia-causas-lites-obligationes-et-alias-ad-form'
@@ -271,6 +320,14 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
     # Acta Officialia
     # ===============================================================
 
+    # 'AOff XXX': ArchiveBookData(archive_id=ArchiveId.SDM,
+    #                             url_id='URL',
+    #                             num_pages=XXX,
+    #                             current_page_numbering=PageNumeringType.XXX,
+    #                             first_notes_page_inx=XXX,
+    #                             indexes=[],
+    #                             last_notes_page_inx=XXX),
+
     'AOff 9': ArchiveBookData(archive_id=ArchiveId.CAAK,
                               url_id='5e43b48629fd527f362855b6',
                               num_pages=1049,
@@ -280,6 +337,135 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                               last_notes_page_inx=1047,
                               has_narrow_pages=True),
 
+    'AOff 100': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-sententiarum-tam-diffinitivarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-quietatiam-et-constitutionum-procuratorum-coram'
+                                       '-reverendo-domino-bar-tholomeo-gatkowski-cancellario-gnesnensi-archidiacono'
+                                       '-et-reverendissimi-in-christo-patris-domini-andree-dei-gratia-episcopi'
+                                       '-cracoviensis-vicario-in-spiritualibus-generali-cracoviensi-ad-annum-domini'
+                                       '-millesimum-q-uingentesimum-q-uinquagesimum-tercium-cuius-indicio-undecima'
+                                       '-pontificatus-julii-pape-tercii-annus-quartus-feliciter-continuantur',
+                                num_pages=1186,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=2,
+                                # 1553 - 1556, 16 XII 1553 - 12 I 1554, 12 II 1554 - 24 III 1556
+                                indexes=[],
+                                last_notes_page_inx=1185),
+
+    'AOff 101': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-sententiarum-tam-diffinitivarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-quietationum-et-constitutionum-procuratorum-coram'
+                                       '-reverendo-domino-stanislao-schlomovski-praeposito-calissiensi-archidiacono'
+                                       '-sandecensi-canonico-vicarioque-in-spiritualibus-generali-cracocoviensi-ad'
+                                       '-annum-domini-millesimum-quingentesimum-quinquagesimum-sextum-cuius-indicatio'
+                                       '-quatuor-decima-pontificatus-sanctissimi-in-christo-patris-domini-pauli'
+                                       '-divina-providencia-pape-quarti-anno-ipsius',
+                                num_pages=1108,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=7,
+                                # 1556, 24 III - 31 XII 1557
+                                indexes=[],
+                                last_notes_page_inx=1108),
+
+    'AOff 102': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-sententiarum-tam-diffinivarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-quietationum-et-constitutionum-procuratorum-coram'
+                                       '-reverendo-domino-stanislao-szlomowski-praeposito-calissieensi-archidiacono'
+                                       '-sandecensi-canonico-vicarioque-in-spiritualibus-generali-cracoviensi-ad'
+                                       '-annum-domini-millesimum-quingentesimum-quinquagesimum-octavum-cuius-indicio'
+                                       '-prima-pontificatus-sanctissimi-domini-nostri-pauli-divina-providencia-pape'
+                                       '-quarti-anno-illius-tercio-feliciter-sequuntur',
+                                num_pages=1426,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=5,
+                                # 03.01.1558 - 26.06.1560; 16.08.1560 - 24.12.1560
+                                indexes=[],
+                                last_notes_page_inx=1426),
+
+    # NOTE: AOff 103 dostępny tylko w AKMK.
+
+    'AOff 104': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-sententiarum-tam-diffinitivarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-quietationum-et-constitutionum-procuratorum-coram'
+                                       '-reverendo-domino-andrea-przeczlauski-scholastico-vicarioque-in-spiritualibus'
+                                       '-generali-cracoviensi-ad-annum-domini-millesimum-quingentesimum-sexagesimum'
+                                       '-primum-cuius-inditio-quarta-pontidicatus-pii-quarti-annus-secundus'
+                                       '-poeliciter-sequuntur',
+                                num_pages=1248,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                # 1561 - 1565, 2 I 1561 - 26 VIII 1563, 30 VIII 1563 - 25 VI 1565
+                                indexes=[],
+                                last_notes_page_inx=1247),
+
+    'AOff 105': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-sententiarum-tam-diffinitivarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-quietationum-constitutionum-procuratorum-etc-coram'
+                                       '-reverendo-domino-martino-izdbienski-de-russiecz-archidiacono-posnaniensi'
+                                       '-custode-et-in-spiritualibus-vicario-generali-cracoviensi-ad-annum-domini'
+                                       '-millesimum-quingesimum-sexagesimum-quintum-cuius-indictio-octava'
+                                       '-pontificatus-pii-pape-annus-sextus-continuantur',
+                                num_pages=1204,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=7,
+                                # 1565 - 1569, 26 VI 1565 - 30 X 1567, 31 X 1567 - 25 XI 1569
+                                indexes=[],
+                                last_notes_page_inx=1204),
+
+    'AOff 106': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-sententiarum-deffinitiuarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-procuratorum-etc-coram-reverendo-domino-martino'
+                                       '-izbienski-de-rusiecz-archidiacono-posnaniensis-custode-et-in-spiritualibus'
+                                       '-vicario-generali-officiali-cracoviensis-ad-annum-domini-millesimum'
+                                       '-quingentesimum-sexagesimum-nonum-cuius-indictio-duodecima-pontus-sanctissimi'
+                                       '-pii-papae-quinti-annus-quartus-foeliciter-continuantur',
+                                num_pages=1226,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=7,
+                                indexes=[],
+                                last_notes_page_inx=1224),
+
+    'AOff 107': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='liber-actorum-vicariatus-et-officialatus-cracoviensis-ad-annum-domini-1574-et'
+                                       '-seqventes',
+                                num_pages=816,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=5,
+                                # 1574 - 1578
+                                indexes=[],
+                                last_notes_page_inx=814),
+
+    'AOff 108': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-tam-diffinitivarum-quam-interloquutoriarum-sententiarum'
+                                       '-decretorum-obligationum-quietatorum-constuorum-pro-reverendum-coram'
+                                       '-reverendo-domino-alberto-nininski-custode-sandecensis-canonico-et'
+                                       '-archipresbitero-viccarioque-in-spiritualibus-ac-officiali-generali'
+                                       '-cracoviensis-ad-annum-domini-millesimum-qumgentesimum-septuagentesimum-nonum'
+                                       '-cuius-judictio-septima-pontificat-ss-nostri-domini-gregory-pp-tredecimi-anno'
+                                       '-septimo-inchoantur-faliciter',
+                                num_pages=556,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=4,
+                                # 1579
+                                indexes=[],
+                                last_notes_page_inx=555),
+
+    'AOff 109': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='acta-actorum-causarum-sententiarum-tam-diffinitivarum-quam-interloquutoriarum'
+                                       '-decretorum-obligationum-quietationum-constitutionum-procuratorum-etc-etc'
+                                       '-coram-reverendo-domino-stanislao-manieczki-sacratissimi-corporis-christi'
+                                       '-cazimiriae-praeposito-viccario-in-spiritualibus-ac-officiali-generali'
+                                       '-cracoviensi-ad-annum-domini-millesimum-quingentesimum-octuagesimum-tercium'
+                                       '-indictione-undecima-pontificatus-sanctissimi-in-christo-patris-domini-nostri'
+                                       '-domini-gregorii-divina-providentia-papae-tredecimi-anno-ipsius-duodecima'
+                                       '-faeliciter-inchoantur',
+                                num_pages=1200,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=5,
+                                # 1583 - 1585
+                                indexes=[],
+                                last_notes_page_inx=1200),
+
     'AOff 110': ArchiveBookData(archive_id=ArchiveId.CAAK,
                                 url_id='5fd9f58f31bdef3c5713d51e',
                                 num_pages=674,
@@ -287,6 +473,24 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                 first_notes_page_inx=6,
                                 indexes=[],
                                 last_notes_page_inx=669),
+
+    'AOff 111': ArchiveBookData(archive_id=ArchiveId.SDM,
+                                url_id='illistrissimo-et-revedissimo-in-christo-patre-domino-domino-georgio-rzadziwil'
+                                       '-miserone-divina-sacrostae-r-e-tituli-s-sixti-presbitero-cardinali-duce-in'
+                                       '-olyka-et-niesswiesz-ad-gubernacula-ecclessiae-cracoviensis-cuius'
+                                       '-administratorialem-a-sancta-sede-apostolica-obtinverat-feliciter-sedente'
+                                       '-acta-actorum-causarum-sententiarum-tam-deffinitivarum-quam'
+                                       '-interloquutoriarum-decretorum-obligationum-quietationum-recognitionum'
+                                       '-constitutionum-procuratorum-etc-coram-reverendo-domino-stanislao-crassinskz'
+                                       '-de-crasne-archidiacono-cracoviensis-scholastico-gnesnesis-custode-plocensis'
+                                       '-etc-vicario-et-officiali-generali-cracoviensi-in-ano-domini-millesimo'
+                                       '-quingentesimo-nonagesimo-primo-cuius-indictio-quarta-pontificatus-ss-domini'
+                                       '-nostri-gregorii-xiiii-anno-i-psius-prio-feliciter-incipiut',
+                                num_pages=1296,
+                                current_page_numbering=PageNumeringType.Foliation,
+                                first_notes_page_inx=6,
+                                indexes=[],
+                                last_notes_page_inx=1293),
 
     # AOff 111 - brak w CAAK
 

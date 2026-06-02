@@ -61,6 +61,23 @@ class ArchiveBookData:
 
 
 archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
+    'AEp 29': ArchiveBookData(archive_id=ArchiveId.SDM,
+                              url_id='liber-actorum-tempore-r-d-philippi-padniewski-episcopi-cracoviensis-et-regni'
+                                     '-poloniae-vicecancellarii-ad-annum-1560-a-die-augusti-et-per-annos-1561-1562'
+                                     '-1572-usque-ad-14-aprilis-registratorum',
+                              num_pages=706,
+                              current_page_numbering=PageNumeringType.Foliation,
+                              first_notes_page_inx=6,
+                              # 1560-08-20 - 1572-04-14
+                              indexes=[IndexRange(676, 676, year=1560), IndexRange(676, 676, year=1561),
+                                       IndexRange(676, 680, year=1562), IndexRange(680, 682, year=1563),
+                                       IndexRange(683, 684, year=1564), IndexRange(684, 685, year=1565),
+                                       IndexRange(686, 688, year=1566), IndexRange(689, 690, year=1567),
+                                       IndexRange(690, 691, year=1568), IndexRange(691, 694, year=1569),
+                                       IndexRange(694, 696, year=1570), IndexRange(696, 698, year=1571),
+                                       IndexRange(699, 699, year=1572)],
+                              last_notes_page_inx=699),
+
     'AEp 30': ArchiveBookData(archive_id=ArchiveId.SDM,
                               url_id='volumen-unicum-actorum-episcopalium-revenderissimi-in-christo-patris-domini'
                                      '-domini-francisci-krasinski-episcopi-cracoviensis-ducis-severiae-ab-anno-domini'
@@ -74,6 +91,8 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                        IndexRange(1418, 1425, year=1576), IndexRange(1425, 1426, year=1577)],
                               last_notes_page_inx=1426),
 
+    # FIXME: Zła numeracja kart gdzieś na początku - o 2 karty, potem o coraz więcej; może któraś strona została
+    #  zamieszczona dwukrotnie? (Jeśli tak, to może można odsiać takie strony porównując pobrane pliki?)
     'AEp 31': ArchiveBookData(archive_id=ArchiveId.SDM,
                               url_id='acta-actorum-constitutionum-obligationum-resignationum-quietationum-tempore-r-d'
                                      '-petr-myszkowski-episcopi-cracoviensis-qui-post-mortem-r-d-francisci-krasinski'
@@ -491,8 +510,6 @@ archive_books: Dict[ArchiveBookId, ArchiveBookData] = {
                                 first_notes_page_inx=6,
                                 indexes=[],
                                 last_notes_page_inx=1293),
-
-    # AOff 111 - brak w CAAK
 
     'AOff 112': ArchiveBookData(archive_id=ArchiveId.CAAK,
                                 url_id='5fd9f6aaf0570e3c6e4bc0e7',

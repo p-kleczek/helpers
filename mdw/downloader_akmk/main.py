@@ -441,7 +441,7 @@ if __name__ == "__main__":
             page_type: str = 'p.' if archival_entry.current_page_numbering == PageNumeringType.Pagination else 'f.'
             page_id_human = page_id.split('#')[-1].lstrip('0').replace('_', '')
             print(
-                f"Processing page "
+                f"Processing: {archive_signature} "
                 f"{page_type} {page_id_human} (# "
                 f"{page_inx})...")
 
